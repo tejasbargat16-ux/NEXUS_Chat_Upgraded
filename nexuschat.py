@@ -19,9 +19,16 @@ Commands (type inside chat):
     /sessions            list saved conversations
     /load <id>           resume a saved conversation
     /rename <title>      rename current conversation
-    /provider <name>     switch provider: groq | gemini | openrouter
+    /provider <name>     switch provider: groq | gemini | openrouter | openai | mistral | cohere
     /model <name>        switch model within the current provider
     /models              list suggested models for the current provider
+    /remember <fact>     save a fact about you for NEXUS to remember always
+    /profile             show everything NEXUS remembers about you
+    /forget all          erase everything NEXUS remembers about you
+    /agent on|off        toggle agent mode (NEXUS can propose shell commands)
+    /voice on|off        toggle voice mode (spoken replies, mic input via 'v')
+    /search <query>      manually search the web right now
+    /image <description> generate an image right now (saved + opened)
     /clear                clear the screen
     /exit                quit
 """
@@ -31,21 +38,34 @@ import sys
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 
 import db
 import providers
+import profile as user_profile
+import agent
+import voice
+import search
+import imagegen
+import identity
+import local_llm
 
 console = Console()
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SYSTEM_PROMPT = (
-    "You are NEXUS, a helpful terminal-based AI assistant running on the "
-    "user's device via Termux. Keep answers clear and concise unless asked "
-    "for detail."
-)
+SYSTEM_PROMPT = identity.CORE_SYSTEM_PROMPT
 
 DEFAULT_PROVIDER = "groq"
+MAX_AGENT_STEPS = 5
+
+
+def build_system_message(agent_mode):
+    content = user_profile.build_system_prompt(SYSTEM_PROMPT)
+    content += agent.SEARCH_INSTRUCTIONS
+    content += agent.IMAGE_INSTRUCTIONS
+    if agent_mode:
+        content += agent.AGENT_MODE_INSTRUCTIONS
+    return {"role": "system", "content": content}
 
 
 def print_banner(provider, model):
@@ -101,19 +121,38 @@ def main():
 
     model = providers.PROVIDERS[provider]["default_model"]
     print_banner(provider, model)
+    if user_profile.load_profile():
+        console.print("[dim]Loaded saved profile — NEXUS remembers you from before.[/]")
 
+    agent_mode = False
+    voice_mode = False
     conv_id = db.create_conversation()
-    history = [{"role": "system", "content": SYSTEM_PROMPT}]
+    history = [build_system_message(agent_mode)]
 
     while True:
         try:
-            user_input = Prompt.ask("[bold green]You[/]")
+            user_input = Prompt.ask("[bold green]You[/]" + ("  [dim](type v to speak)[/]" if voice_mode else ""))
         except (KeyboardInterrupt, EOFError):
             console.print("\n[yellow]Bye![/]")
             break
 
         if not user_input.strip():
             continue
+
+        if voice_mode and user_input.strip().lower() == "v":
+            groq_key = providers.load_key("groq", SCRIPT_DIR)
+            try:
+                with console.status("[cyan]Listening... (recording 6s)[/]"):
+                    audio_path = voice.record_voice_input(seconds=6)
+                with console.status("[cyan]Transcribing...[/]"):
+                    user_input = voice.transcribe_audio(audio_path, groq_key=groq_key)
+                if not user_input:
+                    console.print("[yellow]Didn't catch that — nothing was transcribed.[/]")
+                    continue
+                console.print(f"[dim]Heard:[/] {user_input}")
+            except Exception as e:
+                console.print(f"[bold red]Voice input error:[/] {e}")
+                continue
 
         if user_input.startswith("/"):
             parts = user_input.strip().split(maxsplit=1)
@@ -125,7 +164,7 @@ def main():
                 break
             elif cmd == "/new":
                 conv_id = db.create_conversation()
-                history = [{"role": "system", "content": SYSTEM_PROMPT}]
+                history = [build_system_message(agent_mode)]
                 console.print(f"[green]Started new conversation (id={conv_id})[/]")
             elif cmd == "/sessions":
                 show_sessions()
@@ -136,7 +175,7 @@ def main():
                     if not saved:
                         console.print("[red]No such conversation.[/]")
                         continue
-                    history = [{"role": "system", "content": SYSTEM_PROMPT}] + saved
+                    history = [build_system_message(agent_mode)] + saved
                     console.print(f"[green]Loaded conversation {conv_id}[/]")
                 except ValueError:
                     console.print("[red]Usage: /load <id>[/]")
@@ -177,6 +216,89 @@ def main():
                     console.print(f"[cyan]Current model: {model}[/]")
             elif cmd == "/models":
                 show_models(provider)
+            elif cmd == "/remember":
+                if arg:
+                    user_profile.add_fact(arg)
+                    # refresh the system prompt in the live conversation too
+                    history[0] = build_system_message(agent_mode)
+                    console.print(f"[green]Got it, I'll remember: {arg}[/]")
+                else:
+                    console.print("[red]Usage: /remember <fact about you>[/]")
+            elif cmd == "/profile":
+                saved = user_profile.load_profile()
+                if saved:
+                    console.print(Panel(saved, title="What NEXUS remembers about you", border_style="magenta"))
+                else:
+                    console.print("[yellow]Nothing saved yet. Use /remember <fact> to add something.[/]")
+            elif cmd == "/forget":
+                if arg.strip().lower() == "all":
+                    user_profile.clear_profile()
+                    history[0] = build_system_message(agent_mode)
+                    console.print("[yellow]Profile cleared.[/]")
+                else:
+                    console.print("[red]Usage: /forget all[/]")
+            elif cmd == "/agent":
+                choice = arg.strip().lower()
+                if choice == "on":
+                    agent_mode = True
+                    history[0] = build_system_message(agent_mode)
+                    console.print(
+                        "[bold yellow]Agent mode ON.[/] NEXUS can now propose shell "
+                        "commands. You will always be asked to approve each one "
+                        "before it runs — nothing executes automatically."
+                    )
+                elif choice == "off":
+                    agent_mode = False
+                    history[0] = build_system_message(agent_mode)
+                    console.print("[green]Agent mode OFF.[/]")
+                else:
+                    console.print(f"[cyan]Agent mode is currently {'ON' if agent_mode else 'OFF'}.[/] Usage: /agent on|off")
+            elif cmd == "/voice":
+                choice = arg.strip().lower()
+                if choice == "on":
+                    if not voice.voice_available():
+                        console.print(
+                            "[red]No voice backend found.[/]\n"
+                            "  On Windows/Linux/Mac: install voice dependencies:\n"
+                            "    pip install -r requirements.txt\n"
+                            "  On Android/Termux: pkg install termux-api (+ Termux:API app)"
+                        )
+                    else:
+                        voice_mode = True
+                        console.print(
+                            "[bold yellow]Voice mode ON.[/] Type 'v' + Enter to record a voice "
+                            "message. NEXUS's replies will be spoken aloud — press Enter anytime "
+                            "to interrupt."
+                        )
+                elif choice == "off":
+                    voice_mode = False
+                    console.print("[green]Voice mode OFF.[/]")
+                else:
+                    console.print(f"[cyan]Voice mode is currently {'ON' if voice_mode else 'OFF'}.[/] Usage: /voice on|off")
+            elif cmd == "/search":
+                if not arg:
+                    console.print("[red]Usage: /search <query>[/]")
+                else:
+                    with console.status(f"[cyan]Searching: {arg}[/]"):
+                        try:
+                            source, results = search.web_search(arg, SCRIPT_DIR)
+                            formatted = search.format_results(source, results)
+                        except Exception as e:
+                            formatted = f"Search failed: {e}"
+                    console.print(Panel(formatted, title="Search results", border_style="cyan"))
+            elif cmd == "/image":
+                if not arg:
+                    console.print("[red]Usage: /image <description>[/]")
+                else:
+                    with console.status(f"[cyan]Generating image: {arg}[/]"):
+                        try:
+                            src, path = imagegen.generate_image(arg, SCRIPT_DIR)
+                        except Exception as e:
+                            console.print(f"[bold red]Image generation failed:[/] {e}")
+                            path = None
+                    if path:
+                        console.print(f"[green]Image saved ({src}):[/] {path}")
+                        imagegen.open_image(path)
             elif cmd == "/clear":
                 console.clear()
                 print_banner(provider, model)
@@ -187,18 +309,112 @@ def main():
         history.append({"role": "user", "content": user_input})
         db.add_message(conv_id, "user", user_input)
 
-        try:
-            with console.status(f"[cyan]NEXUS ({providers.PROVIDERS[provider]['label']}) is thinking...[/]"):
-                reply = providers.call(provider, api_key, model, history)
-        except Exception as e:
-            console.print(f"[bold red]Error:[/] {e}")
-            continue
+        steps_left = MAX_AGENT_STEPS
+        while True:
+            try:
+                if voice_mode:
+                    # Voice instructions are transient: apply them only to
+                    # this call, without permanently mutating history[0],
+                    # so toggling /voice on|off takes effect immediately.
+                    call_messages = list(history)
+                    call_messages[0] = {
+                        "role": "system",
+                        "content": history[0]["content"] + identity.VOICE_MODE_INSTRUCTIONS,
+                    }
+                else:
+                    call_messages = history
 
-        history.append({"role": "assistant", "content": reply})
-        db.add_message(conv_id, "assistant", reply)
+                if local_llm.is_online():
+                    with console.status(f"[cyan]NEXUS ({providers.PROVIDERS[provider]['label']}) is thinking...[/]"):
+                        reply = providers.call(provider, api_key, model, call_messages)
+                elif local_llm.is_configured():
+                    console.print("[yellow]No internet detected — answering from the local offline model (weaker than the cloud models).[/]")
+                    with console.status("[cyan]Thinking locally (offline)...[/]"):
+                        reply = local_llm.generate_local(call_messages)
+                else:
+                    raise RuntimeError(
+                        "No internet connection, and no local offline model is set up. "
+                        "See README.md's 'Offline fallback' section to set one up."
+                    )
+            except Exception as e:
+                console.print(f"[bold red]Error:[/] {e}")
+                break
 
-        console.print("[bold magenta]NEXUS[/]")
-        console.print(Markdown(reply))
+            history.append({"role": "assistant", "content": reply})
+            db.add_message(conv_id, "assistant", reply)
+
+            console.print("[bold magenta]NEXUS[/]")
+            console.print(Markdown(reply))
+
+            if voice_mode:
+                voice.speak_with_interrupt(reply, console)
+
+            search_query = agent.extract_search(reply)
+            if search_query and steps_left > 0:
+                steps_left -= 1
+                with console.status(f"[cyan]Searching: {search_query}[/]"):
+                    try:
+                        source, results = search.web_search(search_query, SCRIPT_DIR)
+                        formatted = search.format_results(source, results)
+                    except Exception as e:
+                        formatted = f"Search failed: {e}"
+                console.print(Panel(formatted, title="Search results", border_style="cyan"))
+                feedback = f"Search results for '{search_query}':\n{formatted}"
+                history.append({"role": "user", "content": feedback})
+                db.add_message(conv_id, "user", feedback)
+                continue
+
+            image_prompt = agent.extract_image(reply)
+            if image_prompt and steps_left > 0:
+                steps_left -= 1
+                with console.status(f"[cyan]Generating image: {image_prompt}[/]"):
+                    try:
+                        src, path = imagegen.generate_image(image_prompt, SCRIPT_DIR)
+                        feedback = f"Image generated successfully ({src}) and saved to: {path}"
+                        console.print(f"[green]Image saved ({src}):[/] {path}")
+                        imagegen.open_image(path)
+                    except Exception as e:
+                        feedback = f"Image generation failed: {e}"
+                        console.print(f"[bold red]Image generation failed:[/] {e}")
+                history.append({"role": "user", "content": feedback})
+                db.add_message(conv_id, "user", feedback)
+                continue
+
+            if not agent_mode:
+                break
+
+            command = agent.extract_command(reply)
+            if not command:
+                break
+
+            if steps_left <= 0:
+                console.print("[yellow]Reached the max agent steps for this turn. Say 'continue' if you want more.[/]")
+                break
+            steps_left -= 1
+
+            if agent.is_blocked(command):
+                console.print(f"[bold red]Refusing to run (blocked as dangerous):[/] {command}")
+                feedback = "That command was blocked for safety and was not run. Suggest a safer alternative or ask the user for clarification."
+                history.append({"role": "user", "content": feedback})
+                db.add_message(conv_id, "user", feedback)
+                continue
+
+            console.print(Panel(command, title="Proposed command", border_style="yellow"))
+            approved = Confirm.ask("Run this command?", default=False)
+            if not approved:
+                feedback = "The user declined to run that command. Ask what they'd like to do instead, or propose a different approach."
+                history.append({"role": "user", "content": feedback})
+                db.add_message(conv_id, "user", feedback)
+                continue
+
+            stdout, stderr, code = agent.run_command(command, cwd=SCRIPT_DIR)
+            output_summary = f"Command: {command}\nExit code: {code}\nSTDOUT:\n{stdout.strip() or '(empty)'}\nSTDERR:\n{stderr.strip() or '(empty)'}"
+            console.print(Panel(output_summary, title="Command output", border_style="dim"))
+
+            feedback = f"Command output:\n{output_summary}"
+            history.append({"role": "user", "content": feedback})
+            db.add_message(conv_id, "user", feedback)
+            # loop again so the AI can react to the output
 
 
 if __name__ == "__main__":

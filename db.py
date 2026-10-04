@@ -72,14 +72,24 @@ def get_messages(conversation_id):
     return [{"role": r["role"], "content": r["content"]} for r in rows]
 
 
-def list_conversations(limit=20):
+def get_conversation(conversation_id):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT id, title, created_at FROM conversations WHERE id = ?",
+        (conversation_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_conversations(limit=100):
     conn = get_connection()
     rows = conn.execute(
         "SELECT id, title, created_at FROM conversations ORDER BY id DESC LIMIT ?",
         (limit,),
     ).fetchall()
     conn.close()
-    return rows
+    return [dict(r) for r in rows]
 
 
 def rename_conversation(conversation_id, title):

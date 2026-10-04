@@ -1,0 +1,8 @@
+{
+  "name": "NEXUS AI",
+  "description": "Your Intelligent Digital Command Center - Next-generation futuristic AI operating system and command center.",
+  "appUrl": "https://ai.studio/apps/2f448cd5-0e62-4173-bb8f-d0da48de10cf",
+  "appId": "2f448cd5-0e62-4173-bb8f-d0da48de10cf",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

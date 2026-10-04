@@ -1,0 +1,34 @@
+# Secrets & environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+ENV/
+
+# Audio & Temporary data
+*.wav
+*.mp3
+*.ogg
+*.db
+*.sqlite3
+images/
+
+# Node & Frontend dependencies
+node_modules/
+ai/node_modules/
+ai/dist/
+dist/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
