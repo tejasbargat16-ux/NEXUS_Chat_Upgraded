@@ -273,6 +273,73 @@ def wish_me():
 
     speak(f"{greeting} I am NEXUS, your task assistant. AI Provider: {provider_info}. How can I assist you today?")
 
+
+def search_wikipedia(search_term, sentences=2):
+    """Search Wikipedia for a topic and return (success: bool, text: str)."""
+    search_term = search_term.strip()
+    if not search_term:
+        return False, "Please specify what you would like to look up on Wikipedia."
+    try:
+        results = wikipedia.summary(search_term, sentences=sentences)
+        return True, results
+    except Exception as e:
+        return False, f"Could not find matching information on Wikipedia: {e}"
+
+
+def execute_desktop_task(raw_query):
+    """
+    Evaluate if raw_query is a local desktop or quick command (time, date, app launch, Wikipedia).
+    Returns (handled: bool, message: str).
+    """
+    query = raw_query.strip().lower()
+
+    if "the time" in query or query == "time":
+        current_time = datetime.datetime.now().strftime("%I:%M %p")
+        return True, f"The time is {current_time}."
+
+    if "the date" in query or query == "date":
+        today_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
+        return True, f"Today is {today_date}."
+
+    if "open youtube" in query:
+        webbrowser.open("https://www.youtube.com")
+        return True, "Opening YouTube."
+
+    if "open google" in query:
+        webbrowser.open("https://www.google.com")
+        return True, "Opening Google."
+
+    if "open notepad" in query:
+        try:
+            subprocess.Popen("notepad.exe")
+            return True, "Opening Notepad."
+        except Exception as e:
+            return True, f"Could not open Notepad: {e}"
+
+    if "open calculator" in query or "open calc" in query:
+        try:
+            subprocess.Popen("calc.exe")
+            return True, "Opening Calculator."
+        except Exception as e:
+            return True, f"Could not open Calculator: {e}"
+
+    if "open terminal" in query or "open cmd" in query:
+        try:
+            subprocess.Popen("cmd.exe")
+            return True, "Opening Command Prompt."
+        except Exception as e:
+            return True, f"Could not open Command Prompt: {e}"
+
+    if query.startswith("wikipedia ") or " wikipedia" in query or query == "wikipedia":
+        term = query.replace("wikipedia", "").replace("search", "").strip()
+        ok, res = search_wikipedia(term)
+        if ok:
+            return True, f"According to Wikipedia: {res}"
+        return True, res
+
+    return False, ""
+
+
 # ------------------------------------------------------------------ Main Execution
 def main():
     console.print(Panel.fit(
@@ -321,49 +388,10 @@ def main():
                 speak("Microphone is not detected. Staying in text mode.")
             continue
 
-        # ------------------------------------------------------------- Local Fast Tasks
-        if "the time" in query or query == "time":
-            current_time = datetime.datetime.now().strftime("%I:%M %p")
-            speak(f"The time is {current_time}.")
-            continue
-
-        if "the date" in query or query == "date":
-            today_date = datetime.datetime.now().strftime("%A, %B %d, %Y")
-            speak(f"Today is {today_date}.")
-            continue
-
-        if "open youtube" in query:
-            speak("Opening YouTube.")
-            webbrowser.open("https://www.youtube.com")
-            continue
-
-        if "open google" in query:
-            speak("Opening Google.")
-            webbrowser.open("https://www.google.com")
-            continue
-
-        if "open notepad" in query:
-            speak("Opening Notepad.")
-            subprocess.Popen("notepad.exe")
-            continue
-
-        if "open calculator" in query or "open calc" in query:
-            speak("Opening Calculator.")
-            subprocess.Popen("calc.exe")
-            continue
-
-        # Wikipedia instant lookup
-        if "wikipedia" in query:
-            search_term = query.replace("wikipedia", "").replace("search", "").strip()
-            if search_term:
-                speak(f"Searching Wikipedia for {search_term}...")
-                try:
-                    results = wikipedia.summary(search_term, sentences=2)
-                    speak(f"According to Wikipedia: {results}")
-                except Exception:
-                    speak("I could not find matching information on Wikipedia.")
-            else:
-                speak("Please specify what you would like to look up on Wikipedia.")
+        # ------------------------------------------------------------- Check Desktop Tasks
+        handled, task_result = execute_desktop_task(raw_query)
+        if handled:
+            speak(task_result)
             continue
 
         # Live Web Search

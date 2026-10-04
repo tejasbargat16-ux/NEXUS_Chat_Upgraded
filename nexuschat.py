@@ -27,6 +27,8 @@ Commands (type inside chat):
     /forget all          erase everything NEXUS remembers about you
     /agent on|off        toggle agent mode (NEXUS can propose shell commands)
     /voice on|off        toggle voice mode (spoken replies, mic input via 'v')
+    /task                launch dedicated hands-free voice task assistant (Nexus_task)
+    /wiki <query>        search Wikipedia directly
     /search <query>      manually search the web right now
     /image <description> generate an image right now (saved + opened)
     /clear                clear the screen
@@ -49,6 +51,7 @@ import search
 import imagegen
 import identity
 import local_llm
+import Nexus_task as nexus_task
 
 console = Console()
 
@@ -299,11 +302,40 @@ def main():
                     if path:
                         console.print(f"[green]Image saved ({src}):[/] {path}")
                         imagegen.open_image(path)
+            elif cmd in ["/task", "/assistant"]:
+                console.print("[bold cyan]Switching to NEXUS Voice & Task Assistant mode...[/]")
+                nexus_task.main()
+                print_banner(provider, model)
+                continue
+            elif cmd in ["/wiki", "/wikipedia"]:
+                if not arg:
+                    console.print("[red]Usage: /wiki <topic>[/]")
+                else:
+                    with console.status(f"[cyan]Searching Wikipedia for: {arg}[/]"):
+                        ok, res = nexus_task.search_wikipedia(arg)
+                    title = f"Wikipedia: {arg}" if ok else "Wikipedia"
+                    border = "cyan" if ok else "yellow"
+                    console.print(Panel(res, title=title, border_style=border))
+                    if voice_mode:
+                        voice.speak_with_interrupt(res, console)
+                continue
             elif cmd == "/clear":
                 console.clear()
                 print_banner(provider, model)
             else:
                 console.print("[red]Unknown command.[/]")
+            continue
+
+        # Check for quick local desktop tasks (open youtube, open notepad, time, date, etc.)
+        handled, task_result = nexus_task.execute_desktop_task(user_input)
+        if handled:
+            console.print(Panel(task_result, title="Desktop Task", border_style="green"))
+            if voice_mode:
+                voice.speak_with_interrupt(task_result, console)
+            history.append({"role": "user", "content": user_input})
+            history.append({"role": "assistant", "content": task_result})
+            db.add_message(conv_id, "user", user_input)
+            db.add_message(conv_id, "assistant", task_result)
             continue
 
         history.append({"role": "user", "content": user_input})
@@ -418,4 +450,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1].lower() in ["--task", "-t", "--voice-task"]:
+        nexus_task.main()
+    else:
+        main()
