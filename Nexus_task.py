@@ -42,6 +42,12 @@ import search
 import imagegen
 import identity
 
+try:
+    from AppOpener import open as app_open, close as app_close
+    HAS_APPOPENER = True
+except ImportError:
+    HAS_APPOPENER = False
+
 console = Console()
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -309,33 +315,41 @@ def execute_desktop_task(raw_query):
         webbrowser.open("https://www.google.com")
         return True, "Opening Google."
 
-    if "open notepad" in query:
-        try:
-            subprocess.Popen("notepad.exe")
-            return True, "Opening Notepad."
-        except Exception as e:
-            return True, f"Could not open Notepad: {e}"
-
-    if "open calculator" in query or "open calc" in query:
-        try:
-            subprocess.Popen("calc.exe")
-            return True, "Opening Calculator."
-        except Exception as e:
-            return True, f"Could not open Calculator: {e}"
-
-    if "open terminal" in query or "open cmd" in query:
-        try:
-            subprocess.Popen("cmd.exe")
-            return True, "Opening Command Prompt."
-        except Exception as e:
-            return True, f"Could not open Command Prompt: {e}"
-
     if query.startswith("wikipedia ") or " wikipedia" in query or query == "wikipedia":
         term = query.replace("wikipedia", "").replace("search", "").strip()
         ok, res = search_wikipedia(term)
         if ok:
             return True, f"According to Wikipedia: {res}"
         return True, res
+
+    # AppOpener integration for opening any installed app
+    if (query.startswith("open ") or query.startswith("launch ")) and HAS_APPOPENER:
+        target_app = query.replace("open ", "").replace("launch ", "").strip()
+        if target_app and target_app not in ["youtube", "google"]:
+            try:
+                app_open(target_app, match_closest=True, output=False)
+                return True, f"Opening {target_app.title()}."
+            except Exception as e:
+                # Fallback to subprocess for standard apps
+                if "notepad" in target_app:
+                    subprocess.Popen("notepad.exe")
+                    return True, "Opening Notepad."
+                elif "calc" in target_app:
+                    subprocess.Popen("calc.exe")
+                    return True, "Opening Calculator."
+                elif "cmd" in target_app or "terminal" in target_app:
+                    subprocess.Popen("cmd.exe")
+                    return True, "Opening Command Prompt."
+
+    # AppOpener integration for closing any running app
+    if (query.startswith("close ") or query.startswith("stop ") or query.startswith("quit ")) and HAS_APPOPENER:
+        target_app = query.replace("close ", "").replace("stop ", "").replace("quit ", "").strip()
+        if target_app:
+            try:
+                app_close(target_app, match_closest=True, output=False)
+                return True, f"Closing {target_app.title()}."
+            except Exception as e:
+                return True, f"Could not close {target_app}: {e}"
 
     return False, ""
 

@@ -425,6 +425,38 @@ def voice_transcribe():
     return jsonify({"error": "No audio file or audio_base64 provided."}), 400
 
 
+# ------------------------------------------------------------------ desktop app control
+
+@app.route("/apps/open", methods=["POST"])
+def open_app():
+    data = request.get_json(silent=True) or {}
+    app_name = data.get("app") or data.get("name")
+    if not app_name:
+        return jsonify({"error": "app parameter is required"}), 400
+
+    try:
+        from AppOpener import open as app_open
+        app_open(app_name, match_closest=True, output=False)
+        return jsonify({"ok": True, "message": f"Opened {app_name}"})
+    except Exception as e:
+        return jsonify({"error": f"Failed to open {app_name}: {e}"}), 500
+
+
+@app.route("/apps/close", methods=["POST"])
+def close_app():
+    data = request.get_json(silent=True) or {}
+    app_name = data.get("app") or data.get("name")
+    if not app_name:
+        return jsonify({"error": "app parameter is required"}), 400
+
+    try:
+        from AppOpener import close as app_close
+        app_close(app_name, match_closest=True, output=False)
+        return jsonify({"ok": True, "message": f"Closed {app_name}"})
+    except Exception as e:
+        return jsonify({"error": f"Failed to close {app_name}: {e}"}), 500
+
+
 if __name__ == "__main__":
     db.init_db()
     if not os.environ.get("NEXUS_API_KEY"):

@@ -2,7 +2,6 @@ requests
 rich
 flask
 flask-cors
-wikipedia
 
 # Optional: For desktop voice features (Windows / Mac / Linux)
 pyttsx3
