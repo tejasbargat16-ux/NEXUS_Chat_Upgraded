@@ -1,8 +1,13 @@
-# NEXUS Chat
+# NEXUS Chat & Studio (Upgraded with AI Voice Desktop Assistant)
 
-Terminal-based AI chatbot for Termux with **multi-provider routing** (Groq,
-Gemini, OpenRouter) and persistent SQLite chat history so conversations
-survive across sessions.
+A powerful, cross-platform AI Assistant with **multi-provider routing** (Groq, Gemini, OpenRouter, OpenAI, Mistral, Cohere), persistent SQLite chat history, and **full AI Voice Desktop Automation** (`desktop_assistant.py` integrated from [Yuvakunaal/AI-Voice-Desktop-Assistant](https://github.com/Yuvakunaal/AI-Voice-Desktop-Assistant.git)).
+
+### 🚀 Key AI Voice Desktop Features
+- **Voice-Activated & Hands-Free:** Run desktop commands naturally via speech or text (`python main.py --task`).
+- **Open & Close Anything:** Open/close apps, files, folders, and web tabs ("open terminal", "close downloads folder", "open resume pdf", "close chrome tab").
+- **Deep File Indexing & Antonym-Aware Search:** Scans user directories (`Downloads`, `Desktop`, `Documents`, etc.) with word scoring and antonym penalty matrix (e.g. `internal` vs `external`).
+- **AI Intent Parsing & Tie-Breaking:** Local regex parsing with LLM fallback & AI candidate selection for ambiguous queries.
+- **Smart App & Website Handler:** Automatic system app mapping and preset web app routing (Gemini, ChatGPT, CodeChef, YouTube, Notion, GitHub, Gmail, etc.).
 
 Uses plain `requests` (no provider SDKs) to avoid Rust/`jiter`-style compile
 failures that are common in Termux's Python environment.

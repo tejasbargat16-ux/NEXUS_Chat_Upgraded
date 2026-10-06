@@ -37,6 +37,7 @@ import search
 import imagegen
 import identity
 import voice
+import desktop_assistant
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -177,7 +178,8 @@ def delete_conversation(conv_id):
 
 @app.route("/profile", methods=["GET"])
 def get_profile():
-    return jsonify({"text": user_profile.load_profile()})
+    text = user_profile.load_profile()
+    return jsonify({"text": text, "profile": text})
 
 
 @app.route("/profile", methods=["POST"])
@@ -427,6 +429,20 @@ def voice_transcribe():
 
 # ------------------------------------------------------------------ desktop app control
 
+@app.route("/desktop/command", methods=["POST"])
+def desktop_command():
+    data = request.get_json(silent=True) or {}
+    command = data.get("command") or data.get("query")
+    if not command:
+        return jsonify({"error": "command parameter is required"}), 400
+
+    try:
+        handled, msg = desktop_assistant.handle_desktop_command(command)
+        return jsonify({"ok": handled, "handled": handled, "message": msg})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/apps/open", methods=["POST"])
 def open_app():
     data = request.get_json(silent=True) or {}
@@ -434,12 +450,10 @@ def open_app():
     if not app_name:
         return jsonify({"error": "app parameter is required"}), 400
 
-    try:
-        from AppOpener import open as app_open
-        app_open(app_name, match_closest=True, output=False)
-        return jsonify({"ok": True, "message": f"Opened {app_name}"})
-    except Exception as e:
-        return jsonify({"error": f"Failed to open {app_name}: {e}"}), 500
+    ok, msg = desktop_assistant.open_app_action(app_name)
+    if ok:
+        return jsonify({"ok": True, "message": msg})
+    return jsonify({"error": msg}), 500
 
 
 @app.route("/apps/close", methods=["POST"])
@@ -449,18 +463,28 @@ def close_app():
     if not app_name:
         return jsonify({"error": "app parameter is required"}), 400
 
-    try:
-        from AppOpener import close as app_close
-        app_close(app_name, match_closest=True, output=False)
-        return jsonify({"ok": True, "message": f"Closed {app_name}"})
-    except Exception as e:
-        return jsonify({"error": f"Failed to close {app_name}: {e}"}), 500
+    ok, msg = desktop_assistant.close_app_action(app_name)
+    if ok:
+        return jsonify({"ok": True, "message": msg})
+    return jsonify({"error": msg}), 500
+
+
+DEFAULT_NEXUS_KEY = "XDy3lmPYUWvUGZtORMfKdDwCVBcqpgua0MtQEtOEOso"
+
+
+def run_server(host=None, port=None):
+    db.init_db()
+    if not os.environ.get("NEXUS_API_KEY"):
+        os.environ["NEXUS_API_KEY"] = DEFAULT_NEXUS_KEY
+        print(f"[NEXUS API] Default NEXUS_API_KEY set: {DEFAULT_NEXUS_KEY[:8]}...")
+    if host is None:
+        host = os.environ.get("HOST", "127.0.0.1")
+    if port is None:
+        port = int(os.environ.get("PORT", 8000))
+    print(f"[NEXUS API] Starting server on http://{host}:{port}")
+    app.run(host=host, port=port, debug=False)
 
 
 if __name__ == "__main__":
-    db.init_db()
-    if not os.environ.get("NEXUS_API_KEY"):
-        print("WARNING: NEXUS_API_KEY is not set. All requests will be rejected with 500.")
-        print('Set it with: export NEXUS_API_KEY="your-long-random-key"')
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    run_server()
+

@@ -28,6 +28,7 @@ Commands (type inside chat):
     /agent on|off        toggle agent mode (NEXUS can propose shell commands)
     /voice on|off        toggle voice mode (spoken replies, mic input via 'v')
     /task                launch dedicated hands-free voice task assistant (Nexus_task)
+    /desktop             launch NEXUS Studio Desktop UI window
     /wiki <query>        search Wikipedia directly
     /search <query>      manually search the web right now
     /image <description> generate an image right now (saved + opened)
@@ -52,6 +53,8 @@ import imagegen
 import identity
 import local_llm
 import Nexus_task as nexus_task
+import nexus_desktop
+
 
 console = Console()
 
@@ -306,6 +309,10 @@ def main():
                 console.print("[bold cyan]Switching to NEXUS Voice & Task Assistant mode...[/]")
                 nexus_task.main()
                 print_banner(provider, model)
+                continue
+            elif cmd in ["/desktop", "/gui", "/web"]:
+                console.print("[bold cyan]Launching NEXUS Studio Desktop UI Window...[/]")
+                nexus_desktop.launch_desktop()
                 continue
             elif cmd in ["/wiki", "/wikipedia"]:
                 if not arg:
