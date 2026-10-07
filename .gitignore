@@ -23,8 +23,8 @@ images/
 
 # Node & Frontend dependencies
 node_modules/
-ai/node_modules/
-ai/dist/
+**/node_modules/
+**/dist/
 dist/
 
 # IDE & OS

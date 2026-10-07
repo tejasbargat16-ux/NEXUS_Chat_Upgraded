@@ -51,8 +51,28 @@ Where to get keys:
 ## Run
 
 ```bash
-python nexuschat.py
+# Unified Launcher
+python main.py                     # Desktop Studio (API + App Window)
+python main.py --cli               # Terminal interactive chat
+python main.py --task              # Voice & task assistant
+python main.py --check             # Verify all modules load
+
+# Or dedicated entrypoints:
+python nexus_desktop.py            # Launch Desktop Studio directly
+python nexuschat.py                # Launch Terminal chat directly
+python api.py                      # Run Flask REST API backend
 ```
+
+## 📁 Repository Layout & Sections
+
+The codebase is organized into dedicated, modular sections:
+
+- **`core/`**: Core AI providers (`providers.py`), database (`db.py`), REST API (`api.py`), user memory (`profile.py`), identity context (`identity.py`), search (`search.py`), audio (`voice.py`), and image synthesis (`imagegen.py`).
+- **`agents/`**: Autonomous automation (`desktop_assistant.py`), hands-free voice task execution (`Nexus_task.py`), and command guardrails (`agent.py`).
+- **`launchers/`**: Standalone launchers (`launch_desktop.py`, `launch_cli.py`, `launch_task.py`).
+- **`frontend/`**: Web clients including Desktop Studio HTML5 UI (`frontend/static/`) and React 19 Command Center (`frontend/ai/`).
+- **`docs/`**: Architecture diagrams (`docs/ARCHITECTURE.md`), API specification (`docs/API_README.md`), and system prompts (`docs/MASTER_PROMPT_REFERENCE.md`).
+- **Root Directory**: Clean backward-compatible proxy scripts (`main.py`, `nexus_desktop.py`, `nexuschat.py`, `api.py`), requirements, and configuration.
 
 ## Commands (inside chat)
 

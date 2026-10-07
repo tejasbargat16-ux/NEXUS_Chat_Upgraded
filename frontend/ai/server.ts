@@ -45,7 +45,7 @@ Format: Use clean Markdown. Provide clear code snippets in C or TypeScript when 
       const promptText = `${message}${attachments?.length ? `\n\nAttachments: ${attachments.map((a: any) => a.name).join(', ')}` : ''}`;
 
       const aiResponse = await aiClient.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash',
         contents: promptText,
         config: {
           systemInstruction,

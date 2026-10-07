@@ -2,9 +2,11 @@ requests
 rich
 flask
 flask-cors
+python-dotenv
 
 # Optional: For desktop voice features (Windows / Mac / Linux)
 pyttsx3
 sounddevice
 numpy
 speechrecognition
+wikipedia

@@ -1409,6 +1409,9 @@
           <button class="tool-btn" id="btn-voice-toggle" title="Voice Speech Output">
             <i class="fa-solid fa-volume-high"></i> TTS Voice
           </button>
+          <button class="tool-btn" id="btn-open-task" title="Run a desktop task">
+            <i class="fa-solid fa-list-check"></i> Tasks
+          </button>
           <button class="tool-btn" id="btn-clear-chat" title="Clear Chat Window">
             <i class="fa-solid fa-eraser"></i> Clear
           </button>
@@ -1483,6 +1486,9 @@
               </button>
               <button class="btn-quick-tool" id="btn-remember-tool" title="Save Fact">
                 <i class="fa-solid fa-bookmark"></i> /remember
+              </button>
+              <button class="btn-quick-tool" id="btn-task-tool" title="Run a desktop task">
+                <i class="fa-solid fa-list-check"></i> Task
               </button>
             </div>
 
@@ -1605,6 +1611,27 @@
     </div>
   </div>
 
+  <!-- Desktop Task Modal -->
+  <div class="modal-overlay" id="task-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fa-solid fa-list-check" style="color: var(--emerald-neon);"></i> NEXUS Task Assistant</div>
+        <button class="modal-close-btn" onclick="closeModal('task-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted);">Run a direct task, such as “open Notepad”, “time”, “date”, “search AI news”, or “Wikipedia Ada Lovelace”.</p>
+        <input type="text" class="select-custom" id="task-input" maxlength="500" placeholder="Describe a direct desktop task...">
+        <div class="code-artifact-card" id="task-result-card" style="display: none;">
+          <div class="code-artifact-body selectable" id="task-result"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('task-modal')">Close</button>
+        <button class="btn-primary" id="btn-run-task"><i class="fa-solid fa-play"></i> Run Task</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Settings Modal -->
   <div class="modal-overlay" id="settings-modal">
     <div class="modal-box">
@@ -1683,7 +1710,7 @@
 
     let currentConversationId = null;
     let currentProvider = "gemini";
-    let currentModel = "gemini-3.8-flash";
+    let currentModel = "gemini-3.6-flash";
     let providersData = [];
     let allConversations = [];
     let voiceOutputEnabled = false;
@@ -1922,17 +1949,18 @@
       if (role === "assistant") {
         const toolbar = document.createElement("div");
         toolbar.className = "message-toolbar";
-        toolbar.innerHTML = `
-          <button class="btn-msg-tool" onclick="copyText(this, \`${escapeHtml(content).replace(/`/g, '\\`')}\`)">
-            <i class="fa-solid fa-copy"></i> Copy
-          </button>
-          <button class="btn-msg-tool" onclick="speakText(\`${escapeHtml(content.replace(/["'\n]/g, " "))}\`)">
-            <i class="fa-solid fa-volume-high"></i> Read
-          </button>
-        `;
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn-msg-tool";
+        copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+        copyBtn.onclick = () => copyText(copyBtn, content);
+        const speakBtn = document.createElement("button");
+        speakBtn.className = "btn-msg-tool";
+        speakBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Read';
+        speakBtn.onclick = () => speakText(content);
+        toolbar.appendChild(copyBtn);
+        toolbar.appendChild(speakBtn);
         bubble.appendChild(toolbar);
       }
-
       row.appendChild(avatar);
       row.appendChild(bubble);
       messagesContainer.appendChild(row);
@@ -1983,22 +2011,26 @@
           </div>
           <div class="agent-command-code">${escapeHtml(command)}</div>
           <div class="agent-card-actions">
-            <button class="btn-agent-run" onclick="executeAgentCommand(this, '${escapeHtml(command)}')">
+            <button class="btn-agent-run">
               <i class="fa-solid fa-play"></i> Approve & Execute
             </button>
-            <button class="btn-agent-decline" onclick="declineAgentCommand(this)">
+            <button class="btn-agent-decline">
               Decline
             </button>
           </div>
         </div>
       `;
 
+      const runBtn = bubble.querySelector(".btn-agent-run");
+      if (runBtn) runBtn.onclick = () => executeAgentCommand(runBtn, command);
+      const declineBtn = bubble.querySelector(".btn-agent-decline");
+      if (declineBtn) declineBtn.onclick = () => declineAgentCommand(declineBtn);
+
       row.appendChild(avatar);
       row.appendChild(bubble);
       messagesContainer.appendChild(row);
       scrollToBottom();
     }
-
     async function executeAgentCommand(btn, command) {
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Executing...';
@@ -2220,6 +2252,37 @@
       document.getElementById(id).classList.remove("open");
     }
 
+    async function runTask() {
+      const input = document.getElementById("task-input");
+      const button = document.getElementById("btn-run-task");
+      const resultCard = document.getElementById("task-result-card");
+      const result = document.getElementById("task-result");
+      const task = input.value.trim();
+      if (!task) {
+        input.focus();
+        return;
+      }
+
+      button.disabled = true;
+      resultCard.style.display = "block";
+      result.textContent = "Running task...";
+      try {
+        const response = await fetch(`${API_HOST}/tasks/run`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ task }),
+        });
+        const data = await response.json().catch(() => ({}));
+        result.textContent = data.message || data.error || `Task failed (HTTP ${response.status}).`;
+        logTelemetry(`Task ${data.ok ? "completed" : "not completed"}: ${task}`);
+      } catch (err) {
+        result.textContent = `Task connection error: ${err.message}`;
+        logTelemetry(`Task request failed: ${err.message}`);
+      } finally {
+        button.disabled = false;
+      }
+    }
+
     // Command Palette Execution
     function executeCmd(cmd) {
       closeModal("cmd-palette-modal");
@@ -2227,6 +2290,7 @@
       else if (cmd === 'search') { chatInput.value = "/search "; chatInput.focus(); }
       else if (cmd === 'image') { chatInput.value = "/image "; chatInput.focus(); }
       else if (cmd === 'remember') { chatInput.value = "/remember "; chatInput.focus(); }
+      else if (cmd === 'task') openModal("task-modal");
       else if (cmd === 'export') exportChatHistory();
       else if (cmd === 'settings') openModal("settings-modal");
       else if (cmd === 'clear') {
@@ -2313,6 +2377,22 @@
       });
 
       btnMic.addEventListener("click", toggleRecording);
+
+      document.getElementById("btn-open-task").addEventListener("click", () => {
+        openModal("task-modal");
+        document.getElementById("task-input").focus();
+      });
+      document.getElementById("btn-task-tool").addEventListener("click", () => {
+        openModal("task-modal");
+        document.getElementById("task-input").focus();
+      });
+      document.getElementById("btn-run-task").addEventListener("click", runTask);
+      document.getElementById("task-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          runTask();
+        }
+      });
 
       document.getElementById("btn-image-tool").addEventListener("click", () => {
         chatInput.value = "/image ";

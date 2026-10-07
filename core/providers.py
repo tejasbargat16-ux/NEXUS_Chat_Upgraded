@@ -15,29 +15,30 @@ PROVIDERS = {
         "label": "Groq",
         "env_key": "GROQ_API_KEY",
         "default_model": "openai/gpt-oss-120b",
-        "suggested_models": ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
+        "suggested_models": ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
     },
     "gemini": {
         "label": "Gemini",
         "env_key": "GEMINI_API_KEY",
-        "default_model": "gemini-3.8-flash",
-        "suggested_models": ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-pro"],
+        "default_model": "gemini-3.6-flash",
+        "suggested_models": ["gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest"],
     },
     "openrouter": {
         "label": "OpenRouter",
         "env_key": "OPENROUTER_API_KEY",
-        "default_model": "qwen/qwen3.8-27b:free",
+        "default_model": "meta-llama/llama-3.3-70b-instruct:free",
         "suggested_models": [
-            "qwen/qwen3.8-27b:free",
-            "nvidia/nemotron-3.5-lightning:free",
-            "meta-llama/llama-3.3-70b-instruct",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "google/gemini-2.0-flash-exp:free",
+            "deepseek/deepseek-r1:free",
+            "qwen/qwen-2.5-72b-instruct",
         ],
     },
     "openai": {
         "label": "OpenAI (ChatGPT)",
         "env_key": "OPENAI_API_KEY",
-        "default_model": "gpt-5.4",
-        "suggested_models": ["gpt-5.4", "gpt-5.4-mini", "gpt-4.1"],
+        "default_model": "gpt-4o",
+        "suggested_models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "o3-mini"],
     },
     "mistral": {
         "label": "Mistral",
@@ -49,7 +50,7 @@ PROVIDERS = {
         "label": "Cohere",
         "env_key": "COHERE_API_KEY",
         "default_model": "command-r-08-2024",
-        "suggested_models": ["command-r-08-2024", "command-r-plus-08-2024", "command-a-03-2025"],
+        "suggested_models": ["command-r-08-2024", "command-r-plus-08-2024"],
     },
 }
 

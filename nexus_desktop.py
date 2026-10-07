@@ -1,71 +1,34 @@
 #!/usr/bin/env python3
 """
-NEXUS Studio Desktop Launcher
-Launches the NEXUS Flask backend and opens the Desktop UI in a dedicated, frameless Desktop Window.
+NEXUS Studio Desktop Launcher (Root Entry Point)
+Launches the NEXUS Flask backend and opens the Desktop UI in a dedicated, frameless window.
+Delegates to modular launcher in launchers/launch_desktop.py.
 """
 
 import os
 import sys
-import time
-import subprocess
-import webbrowser
-import threading
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_server_started = False
+for _p in (SCRIPT_DIR, os.path.join(SCRIPT_DIR, "core"), os.path.join(SCRIPT_DIR, "agents"), os.path.join(SCRIPT_DIR, "launchers")):
+    if os.path.isdir(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
 
-def start_backend_server(host="127.0.0.1", port=8000):
-    """Import and run the Flask API backend."""
-    global _server_started
-    if _server_started:
-        return
-    _server_started = True
-    import api
-    api.run_server(host=host, port=port)
-
-def launch_desktop_window(host="127.0.0.1", port=8000):
-    """Launch MS Edge or Chrome in App Mode for a native desktop application experience."""
-    url = f"http://{host}:{port}"
-    time.sleep(1.2) # Give server time to bind port
-    
-    # Common browser executable paths on Windows
-    edge_path = os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
-    chrome_path = os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
-    chrome_x86 = os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe")
-    
-    opened = False
-    for browser in [edge_path, chrome_path, chrome_x86]:
-        if os.path.exists(browser):
-            try:
-                subprocess.Popen([browser, f"--app={url}", "--title=NEXUS Studio Desktop"])
-                opened = True
-                print(f"[NEXUS Desktop] Launched standalone app window via {os.path.basename(browser)}")
-                break
-            except Exception as e:
-                print(f"[NEXUS Desktop] Could not launch app mode: {e}")
-                
-    if not opened:
-        print(f"[NEXUS Desktop] Opening in default web browser: {url}")
-        webbrowser.open(url)
-
-def launch_desktop(host="127.0.0.1", port=8000):
-    """Callable entry point to launch NEXUS Desktop UI & Server."""
-    print("[NEXUS Desktop] Launching NEXUS Studio Desktop UI...")
-    # Start server in background thread if not already running
-    server_thread = threading.Thread(target=start_backend_server, args=(host, port), daemon=True)
-    server_thread.start()
-    
-    # Launch Desktop app window
-    launch_desktop_window(host=host, port=port)
+from launchers.launch_desktop import (
+    is_server_running,
+    start_backend_server,
+    launch_desktop_window,
+    launch_desktop,
+)
 
 if __name__ == "__main__":
+    import time
     print("==================================================")
     print("        🚀 NEXUS Studio Desktop Launcher          ")
     print("==================================================")
     launch_desktop()
-    # Keep main thread alive when run directly
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n[NEXUS Desktop] Shutting down.")
+        sys.exit(0)
