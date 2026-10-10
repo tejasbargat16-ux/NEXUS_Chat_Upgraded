@@ -26,7 +26,8 @@ this without NEXUS_API_KEY set, and never expose it without a private tunnel.
 import os
 import sys
 
-from flask import Flask, request, jsonify
+import json
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 
 import db
@@ -225,8 +226,17 @@ def generate_reply(conversation_id, provider, model):
     api_key = providers.load_key(provider, SCRIPT_DIR)
     if not api_key:
         raise RuntimeError(f"No API key configured on the server for provider '{provider}'.")
-    history = [build_system_message()] + db.get_messages(conversation_id)
+    history = [build_system_message()] + db.get_messages(conversation_id, limit=20)
     return providers.call(provider, api_key, model, history)
+
+
+def generate_reply_stream(conversation_id, provider, model):
+    """Progressively stream tokens from provider using sliding window context."""
+    api_key = providers.load_key(provider, SCRIPT_DIR)
+    if not api_key:
+        raise RuntimeError(f"No API key configured on the server for provider '{provider}'.")
+    history = [build_system_message()] + db.get_messages(conversation_id, limit=20)
+    yield from providers.stream(provider, api_key, model, history)
 
 
 MAX_SEARCH_STEPS = 5
@@ -320,7 +330,18 @@ def chat():
     try:
         reply = generate_reply_with_search(conversation_id, provider, model, request.host_url.rstrip("/"))
     except Exception as e:
-        return jsonify({"error": str(e)}), 502
+        print(f"[API Chat Error on {provider}] {e}")
+        fallback_p = "groq" if provider != "groq" and providers.load_key("groq", SCRIPT_DIR) else None
+        if not fallback_p:
+            fallback_p = "openrouter" if provider != "openrouter" and providers.load_key("openrouter", SCRIPT_DIR) else None
+        if fallback_p:
+            try:
+                fallback_m = providers.PROVIDERS[fallback_p]["default_model"]
+                reply = generate_reply_with_search(conversation_id, fallback_p, fallback_m, request.host_url.rstrip("/"))
+            except Exception as fb_err:
+                return jsonify({"error": f"{str(e)} (fallback failed: {fb_err})"}), 502
+        else:
+            return jsonify({"error": str(e)}), 502
 
     command = agent.extract_command(reply)
     if command and not agent.is_blocked(command):
@@ -344,6 +365,100 @@ def chat():
 
     db.add_message(conversation_id, "assistant", reply)
     return jsonify({"type": "message", "content": reply})
+
+
+@app.route("/chat/stream", methods=["POST"])
+def chat_stream():
+    """Real-time streaming endpoint yielding token chunks via SSE."""
+    data = request.get_json(silent=True) or {}
+    conversation_id = data.get("conversation_id")
+    provider = data.get("provider")
+    model = data.get("model")
+    message = data.get("message")
+
+    if not all([conversation_id, provider, model, message]):
+        return jsonify({"error": "conversation_id, provider, model, and message are required"}), 400
+    if provider not in providers.PROVIDERS:
+        return jsonify({"error": f"Unknown provider '{provider}'"}), 400
+
+    _last_used[conversation_id] = (provider, model)
+    db.add_message(conversation_id, "user", message)
+
+    sse_headers = {
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "Content-Type": "text/event-stream",
+    }
+
+    # Fast path 1: J.A.R.V.I.S. Direct OS & Telemetry Actions
+    try:
+        j_handled, j_reply, j_meta = jarvis_engine.handle_jarvis_command(message)
+        if j_handled:
+            db.add_message(conversation_id, "assistant", j_reply)
+            def _yield_instant_jarvis():
+                chunk = json.dumps({"delta": j_reply, "done": True, "jarvis_action": j_meta})
+                yield f"data: {chunk}\n\n"
+            return Response(_yield_instant_jarvis(), mimetype="text/event-stream", headers=sse_headers)
+    except Exception as exc:
+        print(f"[API Jarvis Command Error] {exc}")
+
+    # Fast path 2: Voice Desktop Assistant Commands
+    try:
+        d_handled, d_reply = desktop_assistant.handle_desktop_command(message)
+        if d_handled:
+            db.add_message(conversation_id, "assistant", d_reply)
+            def _yield_instant_desktop():
+                chunk = json.dumps({"delta": d_reply, "done": True, "desktop_action": True})
+                yield f"data: {chunk}\n\n"
+            return Response(_yield_instant_desktop(), mimetype="text/event-stream", headers=sse_headers)
+    except Exception as exc:
+        print(f"[API Desktop Assistant Error] {exc}")
+
+    def event_stream():
+        full_reply = []
+        try:
+            for token in generate_reply_stream(conversation_id, provider, model):
+                full_reply.append(token)
+                chunk = json.dumps({"delta": token, "done": False})
+                yield f"data: {chunk}\n\n"
+
+            complete_text = "".join(full_reply)
+            db.add_message(conversation_id, "assistant", complete_text)
+
+            cmd = agent.extract_command(complete_text)
+            cmd_data = None
+            if cmd and not agent.is_blocked(cmd):
+                cmd_data = cmd
+
+            end_chunk = json.dumps({"delta": "", "done": True, "command": cmd_data})
+            yield f"data: {end_chunk}\n\n"
+        except Exception as exc:
+            print(f"[API Stream Error on {provider}] {exc}")
+            if not full_reply:
+                fallback_p = "groq" if provider != "groq" and providers.load_key("groq", SCRIPT_DIR) else None
+                if not fallback_p:
+                    fallback_p = "openrouter" if provider != "openrouter" and providers.load_key("openrouter", SCRIPT_DIR) else None
+                if fallback_p:
+                    try:
+                        fallback_m = providers.PROVIDERS[fallback_p]["default_model"]
+                        notice = f"*(Provider `{provider}` unavailable, failover to `{fallback_p}`)*\n\n"
+                        full_reply.append(notice)
+                        yield f"data: {json.dumps({'delta': notice, 'done': False})}\n\n"
+                        for token in generate_reply_stream(conversation_id, fallback_p, fallback_m):
+                            full_reply.append(token)
+                            yield f"data: {json.dumps({'delta': token, 'done': False})}\n\n"
+                        complete_text = "".join(full_reply)
+                        db.add_message(conversation_id, "assistant", complete_text)
+                        cmd = agent.extract_command(complete_text)
+                        cmd_data = cmd if (cmd and not agent.is_blocked(cmd)) else None
+                        yield f"data: {json.dumps({'delta': '', 'done': True, 'command': cmd_data})}\n\n"
+                        return
+                    except Exception as fb_exc:
+                        print(f"[Fallback Stream Error] {fb_exc}")
+            err_chunk = json.dumps({"error": str(exc), "done": True})
+            yield f"data: {err_chunk}\n\n"
+
+    return Response(event_stream(), mimetype="text/event-stream", headers=sse_headers)
 
 
 @app.route("/agent/run", methods=["POST"])

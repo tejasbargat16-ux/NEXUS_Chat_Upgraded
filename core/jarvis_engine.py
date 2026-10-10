@@ -443,8 +443,8 @@ def handle_jarvis_command(text: str) -> Tuple[bool, str, Dict[str, Any]]:
     """
     cmd = text.strip().lower()
 
-    # 1. System status / Telemetry
-    if any(k in cmd for k in ["system status", "telemetry", "hardware status", "system diagnostics", "jarvis status", "pc status"]):
+    # 1. System status / Telemetry / Battery / CPU
+    if any(k in cmd for k in ["system status", "telemetry", "hardware status", "system diagnostics", "jarvis status", "pc status", "battery status", "battery", "cpu status", "cpu load", "ram status", "memory status", "power status"]):
         speech = get_telemetry_speech_summary()
         t = get_system_telemetry()
         return True, speech, {"action": "telemetry", "data": t}

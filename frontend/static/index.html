@@ -1297,6 +1297,18 @@
       gap: 10px;
     }
 
+    .cursor-stream {
+      display: inline-block;
+      color: var(--cyan-bright);
+      font-weight: bold;
+      animation: blink 0.8s infinite;
+      margin-left: 2px;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
     /* J.A.R.V.I.S. HUD Styles */
     .jarvis-reactor-wrap {
       display: flex;
@@ -2043,8 +2055,8 @@
     let API_KEY = localStorage.getItem("nexus_api_key") || DEFAULT_KEY;
 
     let currentConversationId = null;
-    let currentProvider = "gemini";
-    let currentModel = "gemini-3.6-flash";
+    let currentProvider = "groq";
+    let currentModel = "openai/gpt-oss-120b";
     let providersData = [];
     let allConversations = [];
     let voiceOutputEnabled = false;
@@ -2111,7 +2123,9 @@
           providerSelect.appendChild(opt);
         });
 
-        const preferred = providersData.find(p => p.id === "gemini" && p.key_configured) ||
+        const preferred = providersData.find(p => p.id === "groq" && p.key_configured) ||
+                          providersData.find(p => p.id === "openrouter" && p.key_configured) ||
+                          providersData.find(p => p.id === "gemini" && p.key_configured) ||
                           providersData.find(p => p.key_configured) ||
                           providersData[0];
         if (preferred) {
@@ -2432,7 +2446,7 @@
       const startTime = performance.now();
 
       try {
-        const res = await fetch(`${API_HOST}/chat`, {
+        const res = await fetch(`${API_HOST}/chat/stream`, {
           method: "POST",
           headers: getHeaders(),
           body: JSON.stringify({
@@ -2451,20 +2465,101 @@
           throw new Error(errData.error || `HTTP ${res.status}`);
         }
 
-        const data = await res.json();
-        const duration = Math.round(performance.now() - startTime);
-        logTelemetry(`Reply generated in ${duration}ms`);
+        // Create the assistant bubble row immediately
+        const row = document.createElement("div");
+        row.className = "message-row assistant";
+        const avatar = document.createElement("div");
+        avatar.className = "message-avatar";
+        avatar.innerHTML = '<i class="fa-solid fa-bolt"></i>';
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble selectable";
+        bubble.innerHTML = '<span class="cursor-stream">▋</span>';
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        messagesContainer.appendChild(row);
+        scrollToBottom();
 
-        if (data.type === "command" || data.type === "agent_command") {
-          appendAgentCommand(data.command);
-        } else {
-          appendMessage("assistant", data.content || "(empty reply)");
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let accumulatedText = "";
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop(); // keep last incomplete line
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data: ")) {
+              try {
+                const payload = JSON.parse(trimmed.slice(6));
+                if (payload.error) {
+                  throw new Error(payload.error);
+                }
+                if (payload.delta) {
+                  accumulatedText += payload.delta;
+                  bubble.innerHTML = marked.parse(accumulatedText) + '<span class="cursor-stream">▋</span>';
+                  scrollToBottom();
+                }
+                if (payload.done) {
+                  if (payload.command) {
+                    appendAgentCommand(payload.command);
+                  }
+                  break;
+                }
+              } catch (e) {
+                if (e.message && !e.message.includes("JSON")) {
+                  throw e;
+                }
+              }
+            }
+          }
+        }
+
+        // Finalize markdown and syntax highlighting
+        bubble.innerHTML = marked.parse(accumulatedText || "(empty reply)");
+        bubble.querySelectorAll('pre code').forEach((el) => {
+          hljs.highlightElement(el);
+          const codeText = el.textContent;
+          const lang = el.className.replace('hljs ', '') || 'code';
+          const artContent = document.getElementById("artifact-content");
+          const artLang = document.getElementById("artifact-lang");
+          if (artContent) artContent.textContent = codeText;
+          if (artLang) artLang.textContent = lang.toUpperCase();
+        });
+
+        const toolbar = document.createElement("div");
+        toolbar.className = "message-toolbar";
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "btn-msg-tool";
+        copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+        copyBtn.onclick = () => copyText(copyBtn, accumulatedText);
+        const speakBtn = document.createElement("button");
+        speakBtn.className = "btn-msg-tool";
+        speakBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Read';
+        speakBtn.onclick = () => speakText(accumulatedText);
+        toolbar.appendChild(copyBtn);
+        toolbar.appendChild(speakBtn);
+        bubble.appendChild(toolbar);
+
+        scrollToBottom();
+
+        const duration = Math.round(performance.now() - startTime);
+        logTelemetry(`Reply streamed in ${duration}ms`);
+
+        if (voiceOutputEnabled && accumulatedText) {
+          const utter = new SpeechSynthesisUtterance(accumulatedText.replace(/[*_#`]/g, ""));
+          window.speechSynthesis.speak(utter);
         }
       } catch (err) {
         const tRow = document.getElementById("typing-row");
         if (tRow) tRow.remove();
         appendMessage("assistant", `⚠️ **AI Communication Error:**\n${err.message}`);
-        logTelemetry(`Error generating reply: ${err.message}`);
+        logTelemetry(`Error streaming reply: ${err.message}`);
       } finally {
         btnSend.disabled = false;
         chatInput.focus();

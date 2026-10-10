@@ -8,7 +8,14 @@ Each provider function translates that into whatever shape its API needs.
 """
 
 import os
+import json
 import requests
+from requests.adapters import HTTPAdapter
+
+_SESSION = requests.Session()
+_adapter = HTTPAdapter(pool_connections=10, pool_maxsize=20)
+_SESSION.mount("https://", _adapter)
+_SESSION.mount("http://", _adapter)
 
 PROVIDERS = {
     "groq": {
@@ -77,7 +84,7 @@ def call_groq(api_key, model, messages):
         "Content-Type": "application/json",
     }
     payload = {"model": model, "messages": messages, "temperature": 0.7}
-    resp = requests.post(
+    resp = _SESSION.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers=headers, json=payload, timeout=60,
     )
@@ -86,13 +93,43 @@ def call_groq(api_key, model, messages):
     return resp.json()["choices"][0]["message"]["content"]
 
 
+def stream_groq(api_key, model, messages):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {"model": model, "messages": messages, "temperature": 0.7, "stream": True}
+    resp = _SESSION.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers=headers, json=payload, stream=True, timeout=60,
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"Groq API error {resp.status_code}: {resp.text[:300]}")
+    for line in resp.iter_lines():
+        if not line:
+            continue
+        line_str = line.decode("utf-8") if isinstance(line, bytes) else line
+        if line_str.startswith("data: "):
+            chunk_str = line_str[6:].strip()
+            if chunk_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(chunk_str)
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    yield content
+            except Exception:
+                continue
+
+
 def call_openrouter(api_key, model, messages):
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     payload = {"model": model, "messages": messages, "temperature": 0.7}
-    resp = requests.post(
+    resp = _SESSION.post(
         "https://openrouter.ai/api/v1/chat/completions",
         headers=headers, json=payload, timeout=60,
     )
@@ -101,9 +138,37 @@ def call_openrouter(api_key, model, messages):
     return resp.json()["choices"][0]["message"]["content"]
 
 
+def stream_openrouter(api_key, model, messages):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {"model": model, "messages": messages, "temperature": 0.7, "stream": True}
+    resp = _SESSION.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers, json=payload, stream=True, timeout=60,
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"OpenRouter API error {resp.status_code}: {resp.text[:300]}")
+    for line in resp.iter_lines():
+        if not line:
+            continue
+        line_str = line.decode("utf-8") if isinstance(line, bytes) else line
+        if line_str.startswith("data: "):
+            chunk_str = line_str[6:].strip()
+            if chunk_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(chunk_str)
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    yield content
+            except Exception:
+                continue
+
+
 def call_gemini(api_key, model, messages):
-    # Gemini uses "user"/"model" roles and a separate systemInstruction field,
-    # so we translate from the internal OpenAI-style format here.
     system_parts = [m["content"] for m in messages if m["role"] == "system"]
     contents = []
     for m in messages:
@@ -120,7 +185,7 @@ def call_gemini(api_key, model, messages):
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
     )
-    resp = requests.post(url, json=payload, timeout=60)
+    resp = _SESSION.post(url, json=payload, timeout=60)
     if resp.status_code != 200:
         raise RuntimeError(f"Gemini API error {resp.status_code}: {resp.text[:300]}")
     data = resp.json()
@@ -136,7 +201,7 @@ def call_openai(api_key, model, messages):
         "Content-Type": "application/json",
     }
     payload = {"model": model, "messages": messages, "temperature": 0.7}
-    resp = requests.post(
+    resp = _SESSION.post(
         "https://api.openai.com/v1/chat/completions",
         headers=headers, json=payload, timeout=60,
     )
@@ -145,14 +210,43 @@ def call_openai(api_key, model, messages):
     return resp.json()["choices"][0]["message"]["content"]
 
 
+def stream_openai(api_key, model, messages):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {"model": model, "messages": messages, "temperature": 0.7, "stream": True}
+    resp = _SESSION.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers=headers, json=payload, stream=True, timeout=60,
+    )
+    if resp.status_code != 200:
+        raise RuntimeError(f"OpenAI API error {resp.status_code}: {resp.text[:300]}")
+    for line in resp.iter_lines():
+        if not line:
+            continue
+        line_str = line.decode("utf-8") if isinstance(line, bytes) else line
+        if line_str.startswith("data: "):
+            chunk_str = line_str[6:].strip()
+            if chunk_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(chunk_str)
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    yield content
+            except Exception:
+                continue
+
+
 def call_mistral(api_key, model, messages):
-    # Mistral's La Plateforme API is OpenAI-compatible, same shape as Groq/OpenRouter.
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     payload = {"model": model, "messages": messages, "temperature": 0.7}
-    resp = requests.post(
+    resp = _SESSION.post(
         "https://api.mistral.ai/v1/chat/completions",
         headers=headers, json=payload, timeout=60,
     )
@@ -162,16 +256,12 @@ def call_mistral(api_key, model, messages):
 
 
 def call_cohere(api_key, model, messages):
-    # Cohere's v2 chat endpoint accepts an OpenAI-style messages array but
-    # returns its own response shape: message.content is a list of typed
-    # blocks (usually one {"type": "text", "text": "..."} block), not the
-    # OpenAI choices[0].message.content string shape.
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     payload = {"model": model, "messages": messages}
-    resp = requests.post(
+    resp = _SESSION.post(
         "https://api.cohere.com/v2/chat",
         headers=headers, json=payload, timeout=60,
     )
@@ -194,6 +284,23 @@ CALL_FUNCTIONS = {
     "cohere": call_cohere,
 }
 
+STREAM_FUNCTIONS = {
+    "groq": stream_groq,
+    "openrouter": stream_openrouter,
+    "openai": stream_openai,
+    "mistral": stream_openrouter,
+}
+
 
 def call(provider, api_key, model, messages):
     return CALL_FUNCTIONS[provider](api_key, model, messages)
+
+
+def stream(provider, api_key, model, messages):
+    """Stream token chunks progressively from provider."""
+    func = STREAM_FUNCTIONS.get(provider)
+    if func:
+        yield from func(api_key, model, messages)
+    else:
+        # Fallback to non-streaming yielding whole reply
+        yield call(provider, api_key, model, messages)

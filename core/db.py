@@ -62,12 +62,24 @@ def add_message(conversation_id, role, content):
     conn.close()
 
 
-def get_messages(conversation_id):
+def get_messages(conversation_id, limit=None):
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY id ASC",
-        (conversation_id,),
-    ).fetchall()
+    if limit is not None:
+        rows = conn.execute(
+            """
+            SELECT role, content FROM (
+                SELECT id, role, content FROM messages
+                WHERE conversation_id = ?
+                ORDER BY id DESC LIMIT ?
+            ) ORDER BY id ASC
+            """,
+            (conversation_id, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY id ASC",
+            (conversation_id,),
+        ).fetchall()
     conn.close()
     return [{"role": r["role"], "content": r["content"]} for r in rows]
 
