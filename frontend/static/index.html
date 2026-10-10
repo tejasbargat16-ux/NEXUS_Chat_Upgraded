@@ -1297,6 +1297,216 @@
       gap: 10px;
     }
 
+    /* J.A.R.V.I.S. HUD Styles */
+    .jarvis-reactor-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 10px;
+      background: radial-gradient(circle at center, rgba(6, 182, 212, 0.12) 0%, rgba(10, 14, 26, 0.8) 70%);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: var(--radius-md);
+      margin-bottom: 14px;
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #jarvis-reactor-canvas {
+      width: 150px;
+      height: 150px;
+      filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.6));
+    }
+
+    .jarvis-reactor-status {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      margin-top: 6px;
+    }
+
+    .jarvis-core-state {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      color: var(--cyan-bright);
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .jarvis-core-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .jarvis-hud-section {
+      margin-bottom: 14px;
+    }
+
+    .jarvis-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .telemetry-card {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .telemetry-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--cyan-bright);
+    }
+
+    .hud-progress-bg {
+      height: 5px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .hud-progress-bar {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hud-progress-bar.cpu {
+      background: linear-gradient(90deg, #06b6d4, #3b82f6);
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+    }
+
+    .hud-progress-bar.ram {
+      background: linear-gradient(90deg, #8b5cf6, #ec4899);
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+    }
+
+    .metric-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .telemetry-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .telemetry-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .telemetry-chip i {
+      color: var(--amber-neon);
+      font-size: 12px;
+    }
+
+    .chip-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .chip-val {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .jarvis-deck-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .jarvis-deck-btn {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+
+    .jarvis-deck-btn i {
+      color: var(--cyan-bright);
+      font-size: 13px;
+      width: 16px;
+      text-align: center;
+    }
+
+    .jarvis-deck-btn:hover {
+      background: var(--bg-surface-hover);
+      border-color: rgba(56, 189, 248, 0.35);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .jarvis-deck-btn:active {
+      transform: scale(0.97);
+    }
+
+    .jarvis-deck-btn.active-listening {
+      background: rgba(236, 72, 153, 0.15);
+      border-color: var(--pink-neon);
+      color: var(--pink-neon);
+      animation: pulse-border 1.5s infinite;
+    }
+
+    .jarvis-deck-btn.active-listening i {
+      color: var(--pink-neon);
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(236, 72, 153, 0); }
+    }
+
     /* Responsive */
     @media (max-width: 900px) {
       .inspector-pane { display: none; }
@@ -1333,6 +1543,9 @@
       </button>
       <button class="btn-icon-subtle" id="btn-toggle-inspector" title="Toggle Inspector Pane (Ctrl+I)">
         <i class="fa-solid fa-sidebar"></i>
+      </button>
+      <button class="btn-icon-subtle" id="btn-toggle-jarvis" onclick="switchInspectorTab('jarvis'); document.getElementById('inspector-pane').classList.remove('hidden');" title="J.A.R.V.I.S. Core HUD">
+        <i class="fa-solid fa-atom" style="color: var(--cyan-bright);"></i>
       </button>
       <button class="btn-icon-subtle" id="btn-open-shortcuts" title="Keyboard Shortcuts (Ctrl+/)">
         <i class="fa-solid fa-keyboard"></i>
@@ -1456,11 +1669,19 @@
               </div>
             </div>
 
-            <div class="action-card" onclick="sendSuggestion('What facts do you remember about me in your memory profile?')">
-              <div class="action-card-icon"><i class="fa-solid fa-brain"></i></div>
+            <div class="action-card" onclick="sendSuggestion('Jarvis, report system telemetry and hardware status')">
+              <div class="action-card-icon"><i class="fa-solid fa-atom" style="color: var(--cyan-bright);"></i></div>
               <div class="action-card-text">
-                <div class="action-card-title">Persistent Memory</div>
-                <div class="action-card-desc">Store personal profile facts across sessions</div>
+                <div class="action-card-title">J.A.R.V.I.S. Diagnostics</div>
+                <div class="action-card-desc">Inspect real-time CPU, RAM, battery & hardware load</div>
+              </div>
+            </div>
+
+            <div class="action-card" onclick="sendSuggestion('Jarvis, run morning briefing protocol')">
+              <div class="action-card-icon"><i class="fa-solid fa-sun" style="color: var(--amber-neon);"></i></div>
+              <div class="action-card-text">
+                <div class="action-card-title">Executive Briefing</div>
+                <div class="action-card-desc">Daily morning status report & scheduled timers</div>
               </div>
             </div>
           </div>
@@ -1518,9 +1739,122 @@
         <button class="inspector-tab" data-tab="logs" onclick="switchInspectorTab('logs')">
           <i class="fa-solid fa-list-check"></i> Logs
         </button>
+        <button class="inspector-tab" data-tab="jarvis" onclick="switchInspectorTab('jarvis')">
+          <i class="fa-solid fa-atom" style="color: var(--cyan-bright);"></i> Jarvis HUD
+        </button>
       </div>
 
       <div class="inspector-body">
+        <!-- J.A.R.V.I.S. HUD Tab -->
+        <div class="tab-content" id="tab-jarvis" style="display: none;">
+          <!-- Arc Reactor Visualizer -->
+          <div class="jarvis-reactor-wrap">
+            <canvas id="jarvis-reactor-canvas" width="180" height="180"></canvas>
+            <div class="jarvis-reactor-status">
+              <span class="jarvis-core-state" id="jarvis-core-state">CORE ONLINE</span>
+              <span class="jarvis-core-sub" id="jarvis-core-sub">SYSTEMS NOMINAL</span>
+            </div>
+          </div>
+
+          <!-- Telemetry Gauges -->
+          <div class="jarvis-hud-section">
+            <div class="jarvis-section-title">
+              <span><i class="fa-solid fa-microchip"></i> Hardware Telemetry</span>
+              <button class="btn-icon-subtle" onclick="refreshTelemetry()"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+            <div class="telemetry-card">
+              <div class="telemetry-metric">
+                <div class="metric-header">
+                  <span>CPU Load</span>
+                  <span id="hud-cpu-val" class="metric-val">--%</span>
+                </div>
+                <div class="hud-progress-bg"><div class="hud-progress-bar cpu" id="hud-cpu-bar" style="width: 0%"></div></div>
+              </div>
+              <div class="telemetry-metric">
+                <div class="metric-header">
+                  <span>RAM Utilization</span>
+                  <span id="hud-ram-val" class="metric-val">--%</span>
+                </div>
+                <div class="hud-progress-bg"><div class="hud-progress-bar ram" id="hud-ram-bar" style="width: 0%"></div></div>
+                <div class="metric-sub" id="hud-ram-sub">-- GB Free</div>
+              </div>
+              <div class="telemetry-row">
+                <div class="telemetry-chip">
+                  <i class="fa-solid fa-bolt"></i>
+                  <div>
+                    <div class="chip-label">Power</div>
+                    <div class="chip-val" id="hud-battery-val">AC Power</div>
+                  </div>
+                </div>
+                <div class="telemetry-chip">
+                  <i class="fa-solid fa-clock"></i>
+                  <div>
+                    <div class="chip-label">Uptime</div>
+                    <div class="chip-val" id="hud-uptime-val">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Quick Actions -->
+          <div class="jarvis-hud-section">
+            <div class="jarvis-section-title">
+              <span><i class="fa-solid fa-gamepad"></i> Tactical Controls</span>
+            </div>
+            <div class="jarvis-deck-grid">
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('telemetry')">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Diagnostics</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('briefing')">
+                <i class="fa-solid fa-sun"></i>
+                <span>Briefing</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('lock_workstation')">
+                <i class="fa-solid fa-lock"></i>
+                <span>Lock PC</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('minimize_all')">
+                <i class="fa-solid fa-window-minimize"></i>
+                <span>Show Desktop</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('volume_up')">
+                <i class="fa-solid fa-volume-high"></i>
+                <span>Volume +</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('volume_down')">
+                <i class="fa-solid fa-volume-low"></i>
+                <span>Volume -</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('volume_mute')">
+                <i class="fa-solid fa-volume-xmark"></i>
+                <span>Mute</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('media_play_pause')">
+                <i class="fa-solid fa-play"></i>
+                <span>Play/Pause</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerJarvisAction('take_screenshot')">
+                <i class="fa-solid fa-camera"></i>
+                <span>Screenshot</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerQuickTimer(300, '5-minute sprint')">
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>Timer 5m</span>
+              </button>
+              <button class="jarvis-deck-btn" onclick="triggerQuickTimer(900, '15-minute focus')">
+                <i class="fa-solid fa-stopwatch"></i>
+                <span>Timer 15m</span>
+              </button>
+              <button class="jarvis-deck-btn" id="btn-ambient-wake" onclick="toggleAmbientWakeWord()">
+                <i class="fa-solid fa-ear-listen"></i>
+                <span>Wake Word</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Artifacts Tab -->
         <div class="tab-content" id="tab-artifacts">
           <div class="inspector-section-title">
@@ -2191,7 +2525,11 @@
         t.classList.toggle("active", t.dataset.tab === tabName);
       });
       document.querySelectorAll(".tab-content").forEach(c => c.style.display = "none");
-      document.getElementById(`tab-${tabName}`).style.display = "block";
+      const target = document.getElementById(`tab-${tabName}`);
+      if (target) target.style.display = "block";
+      if (tabName === "jarvis") {
+        refreshTelemetry();
+      }
     }
 
     async function refreshMemoryInspector() {
@@ -2485,6 +2823,342 @@
       });
 
       setupSpeechRecognition();
+      initArcReactor();
+      startTelemetryPolling();
+    }
+
+    // =========================================================================
+    // J.A.R.V.I.S. Core Engine Scripts & Visualizers
+    // =========================================================================
+
+    // 1. Audio Feedback Synthesizer (Web Audio API)
+    let audioCtx = null;
+    function playChime(type = "activate") {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === "activate") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        } else if (type === "complete") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.frequency.setValueAtTime(783.99, now + 0.16);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === "alert") {
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.setValueAtTime(587, now + 0.1);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        }
+      } catch (e) {}
+    }
+
+    // 2. Arc Reactor Canvas Loop
+    let reactorAngle = 0;
+    let reactorSpeed = 0.02;
+
+    function initArcReactor() {
+      const canvas = document.getElementById("jarvis-reactor-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      function drawReactor() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        reactorAngle += reactorSpeed;
+
+        // Outer Glow Circle
+        const grad = ctx.createRadialGradient(cx, cy, 20, cx, cy, 80);
+        grad.addColorStop(0, "rgba(6, 182, 212, 0.45)");
+        grad.addColorStop(0.5, "rgba(56, 189, 248, 0.15)");
+        grad.addColorStop(1, "rgba(6, 182, 212, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Outer Notched Ring
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(reactorAngle);
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 68, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 16; i++) {
+          const a = (i * Math.PI) / 8;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 72, Math.sin(a) * 72);
+          ctx.lineTo(Math.cos(a) * 77, Math.sin(a) * 77);
+          ctx.strokeStyle = i % 2 === 0 ? "#38bdf8" : "rgba(56, 189, 248, 0.4)";
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Middle Segmented Ring
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-reactorAngle * 1.5);
+        ctx.strokeStyle = "rgba(139, 92, 246, 0.75)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([28, 14]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 52, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Inner Triangle Core
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(reactorAngle * 0.7);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const a = (i * 2 * Math.PI) / 3 - Math.PI / 2;
+          const x = Math.cos(a) * 32;
+          const y = Math.sin(a) * 32;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+
+        // Central Energy Core
+        const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 22);
+        coreGrad.addColorStop(0, "#ffffff");
+        coreGrad.addColorStop(0.4, "#38bdf8");
+        coreGrad.addColorStop(0.8, "rgba(6, 182, 212, 0.4)");
+        coreGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 22 + Math.sin(reactorAngle * 4) * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        requestAnimationFrame(drawReactor);
+      }
+      drawReactor();
+    }
+
+    // 3. System Hardware Telemetry Polling
+    let telemetryTimer = null;
+    async function refreshTelemetry() {
+      try {
+        const res = await fetch(`${API_HOST}/system/telemetry`, { headers: getHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const cpuVal = document.getElementById("hud-cpu-val");
+        const cpuBar = document.getElementById("hud-cpu-bar");
+        const ramVal = document.getElementById("hud-ram-val");
+        const ramBar = document.getElementById("hud-ram-bar");
+        const ramSub = document.getElementById("hud-ram-sub");
+        const batVal = document.getElementById("hud-battery-val");
+        const upVal = document.getElementById("hud-uptime-val");
+
+        if (cpuVal) cpuVal.textContent = `${data.cpu_percent}%`;
+        if (cpuBar) cpuBar.style.width = `${Math.min(data.cpu_percent, 100)}%`;
+        if (ramVal) ramVal.textContent = `${data.ram_percent}%`;
+        if (ramBar) ramBar.style.width = `${Math.min(data.ram_percent, 100)}%`;
+        if (ramSub) ramSub.textContent = `${data.ram_free_gb} GB Free / ${data.ram_total_gb} GB Total`;
+
+        if (batVal) {
+          if (data.battery_percent !== null) {
+            batVal.textContent = `${data.battery_percent}% (${data.battery_power_plugged ? 'Plugged' : 'Battery'})`;
+          } else {
+            batVal.textContent = "AC Desktop";
+          }
+        }
+        if (upVal) upVal.textContent = data.uptime_formatted || "--";
+      } catch (err) {
+        logTelemetry(`Telemetry poll error: ${err.message}`);
+      }
+    }
+
+    function startTelemetryPolling() {
+      refreshTelemetry();
+      if (telemetryTimer) clearInterval(telemetryTimer);
+      telemetryTimer = setInterval(refreshTelemetry, 5000);
+    }
+
+    // 4. Tactical Control Triggers
+    async function triggerJarvisAction(action) {
+      playChime("activate");
+      if (action === "telemetry") {
+        chatInput.value = "Jarvis, report system telemetry and hardware status";
+        sendMessage();
+        return;
+      }
+      if (action === "briefing") {
+        chatInput.value = "Jarvis, run morning briefing protocol";
+        sendMessage();
+        return;
+      }
+      try {
+        logTelemetry(`Executing J.A.R.V.I.S. action: ${action}`);
+        const res = await fetch(`${API_HOST}/system/action`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ action }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          playChime("complete");
+          appendMessage("assistant", `⚙️ **J.A.R.V.I.S. Action Executed:** ${data.message}`);
+        } else {
+          playChime("alert");
+          appendMessage("assistant", `⚠️ **J.A.R.V.I.S. Action Notice:** ${data.message || data.error}`);
+        }
+      } catch (err) {
+        playChime("alert");
+        appendMessage("assistant", `⚠️ J.A.R.V.I.S. action error: ${err.message}`);
+      }
+    }
+
+    async function triggerQuickTimer(seconds, label) {
+      playChime("activate");
+      try {
+        const res = await fetch(`${API_HOST}/jarvis/timer`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ seconds, label }),
+        });
+        const data = await res.json();
+        playChime("complete");
+        appendMessage("assistant", `⏱️ **J.A.R.V.I.S. Timer Scheduled:** ${label} for ${Math.round(seconds / 60)} minutes.`);
+        logTelemetry(`Timer scheduled: ${label} (${seconds}s)`);
+      } catch (err) {
+        appendMessage("assistant", `Timer error: ${err.message}`);
+      }
+    }
+
+    // 5. Continuous Hands-Free Ambient Wake-Word Engine
+    let ambientWakeActive = false;
+    let ambientRecognition = null;
+
+    function toggleAmbientWakeWord() {
+      const btn = document.getElementById("btn-ambient-wake");
+      const stateEl = document.getElementById("jarvis-core-state");
+      const subEl = document.getElementById("jarvis-core-sub");
+
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) {
+        alert("Speech Recognition API is not supported in this browser window. Please use Chrome or Edge.");
+        return;
+      }
+
+      ambientWakeActive = !ambientWakeActive;
+
+      if (ambientWakeActive) {
+        playChime("activate");
+        if (btn) btn.classList.add("active-listening");
+        if (stateEl) { stateEl.textContent = "AMBIENT LISTENING"; stateEl.style.color = "var(--pink-neon)"; }
+        if (subEl) subEl.textContent = 'AWAITING "JARVIS" / "NEXUS"';
+        reactorSpeed = 0.05;
+        startAmbientLoop();
+        logTelemetry("Ambient Wake-Word detection activated. Say 'Jarvis ...' anytime.");
+      } else {
+        playChime("complete");
+        if (btn) btn.classList.remove("active-listening");
+        if (stateEl) { stateEl.textContent = "CORE ONLINE"; stateEl.style.color = "var(--cyan-bright)"; }
+        if (subEl) subEl.textContent = "SYSTEMS NOMINAL";
+        reactorSpeed = 0.02;
+        if (ambientRecognition) {
+          try { ambientRecognition.stop(); } catch (e) {}
+        }
+        logTelemetry("Ambient Wake-Word mode paused.");
+      }
+    }
+
+    function startAmbientLoop() {
+      if (!ambientWakeActive) return;
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return;
+
+      ambientRecognition = new SpeechRec();
+      ambientRecognition.continuous = true;
+      ambientRecognition.interimResults = true;
+      ambientRecognition.lang = "en-US";
+
+      ambientRecognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res.isFinal) {
+            const transcript = res[0].transcript.trim();
+            const lower = transcript.toLowerCase();
+            logTelemetry(`[Ambient Voice Audio] Heard: "${transcript}"`);
+
+            const wakeWords = ["hey jarvis", "ok jarvis", "jarvis", "hey nexus", "nexus"];
+            const matchedWake = wakeWords.find(w => lower.startsWith(w) || lower.includes(w));
+
+            if (matchedWake) {
+              playChime("activate");
+              const regex = new RegExp(`(?:hey\\s+|ok\\s+)?(?:jarvis|nexus)[,\\s]*(.*)`, "i");
+              const match = transcript.match(regex);
+              const command = (match && match[1]) ? match[1].trim() : "";
+
+              if (command) {
+                chatInput.value = command;
+                sendMessage();
+              } else {
+                appendMessage("assistant", "Yes, sir? Standing by for your instructions.");
+                if (voiceOutputEnabled) {
+                  const utter = new SpeechSynthesisUtterance("Yes, sir? Standing by.");
+                  window.speechSynthesis.speak(utter);
+                }
+              }
+            }
+          }
+        }
+      };
+
+      ambientRecognition.onerror = (event) => {
+        if (event.error !== "no-speech") {
+          logTelemetry(`Ambient speech notice: ${event.error}`);
+        }
+      };
+
+      ambientRecognition.onend = () => {
+        if (ambientWakeActive) {
+          setTimeout(startAmbientLoop, 300);
+        }
+      };
+
+      try {
+        ambientRecognition.start();
+      } catch (err) {
+        logTelemetry(`Could not start ambient recognition: ${err.message}`);
+      }
     }
 
     window.addEventListener("DOMContentLoaded", init);

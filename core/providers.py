@@ -26,12 +26,12 @@ PROVIDERS = {
     "openrouter": {
         "label": "OpenRouter",
         "env_key": "OPENROUTER_API_KEY",
-        "default_model": "meta-llama/llama-3.3-70b-instruct:free",
+        "default_model": "liquid/lfm-2.5-2.6b:free",
         "suggested_models": [
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "google/gemini-2.0-flash-exp:free",
-            "deepseek/deepseek-r1:free",
-            "qwen/qwen-2.5-72b-instruct",
+            "liquid/lfm-2.5-2.6b:free",
+            "google/gemma-4-31b-it:free",
+            "nvidia/nemotron-3.5-lightning:free",
+            "meta-llama/llama-3.3-70b-instruct",
         ],
     },
     "openai": {

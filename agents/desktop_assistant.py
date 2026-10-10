@@ -636,6 +636,16 @@ def handle_desktop_command(command, index=None):
         return False, ""
 
     cmd = command.strip()
+
+    # 0. Check J.A.R.V.I.S. Core Engine actions first
+    try:
+        import jarvis_engine
+        j_handled, j_msg, _ = jarvis_engine.handle_jarvis_command(cmd)
+        if j_handled:
+            return True, j_msg
+    except Exception as exc:
+        print(f"[Desktop Assistant Jarvis Hook Error] {exc}")
+
     index = index or build_index()
 
     intent, target = parse_command(cmd)

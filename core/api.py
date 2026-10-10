@@ -39,6 +39,7 @@ import identity
 import voice
 import desktop_assistant
 import Nexus_task as nexus_task
+import jarvis_engine
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(SCRIPT_DIR) if os.path.basename(SCRIPT_DIR) == "core" else SCRIPT_DIR
@@ -103,7 +104,7 @@ def require_api_key():
 def check_auth():
     if request.method == "OPTIONS":
         return  # let flask-cors handle preflight
-    if request.path in ("/", "/health", "/favicon.ico") or request.path.startswith("/static"):
+    if request.path in ("/", "/health", "/favicon.ico", "/system/telemetry", "/jarvis/briefing", "/jarvis/timers") or request.path.startswith("/static"):
         return
     err = require_api_key()
     if err:
@@ -289,6 +290,32 @@ def chat():
 
     _last_used[conversation_id] = (provider, model)
     db.add_message(conversation_id, "user", message)
+
+    # Fast path 1: J.A.R.V.I.S. Direct OS & Telemetry Actions
+    try:
+        j_handled, j_reply, j_meta = jarvis_engine.handle_jarvis_command(message)
+        if j_handled:
+            db.add_message(conversation_id, "assistant", j_reply)
+            return jsonify({
+                "type": "message",
+                "content": j_reply,
+                "jarvis_action": j_meta,
+            })
+    except Exception as exc:
+        print(f"[API Jarvis Command Error] {exc}")
+
+    # Fast path 2: Voice Desktop Assistant Commands (Apps, Files, Folders, Chrome Tabs)
+    try:
+        d_handled, d_reply = desktop_assistant.handle_desktop_command(message)
+        if d_handled:
+            db.add_message(conversation_id, "assistant", d_reply)
+            return jsonify({
+                "type": "message",
+                "content": d_reply,
+                "desktop_action": True,
+            })
+    except Exception as exc:
+        print(f"[API Desktop Assistant Error] {exc}")
 
     try:
         reply = generate_reply_with_search(conversation_id, provider, model, request.host_url.rstrip("/"))
@@ -489,7 +516,67 @@ def close_app():
     return jsonify({"error": msg}), 500
 
 
+# ------------------------------------------------------------------ J.A.R.V.I.S. Endpoints
+
+@app.route("/system/telemetry", methods=["GET"])
+def system_telemetry():
+    return jsonify(jarvis_engine.get_system_telemetry())
+
+
+@app.route("/system/action", methods=["POST"])
+def system_action():
+    data = request.get_json(silent=True) or {}
+    action = data.get("action")
+    if not action:
+        return jsonify({"error": "action parameter is required"}), 400
+
+    action_map = {
+        "lock_workstation": jarvis_engine.lock_workstation,
+        "lock_screen": jarvis_engine.lock_workstation,
+        "minimize_all": jarvis_engine.minimize_all_windows,
+        "volume_up": lambda: jarvis_engine.volume_up(5),
+        "volume_down": lambda: jarvis_engine.volume_down(5),
+        "volume_mute": jarvis_engine.volume_mute,
+        "mute": jarvis_engine.volume_mute,
+        "media_play_pause": jarvis_engine.media_play_pause,
+        "media_next": jarvis_engine.media_next,
+        "media_prev": jarvis_engine.media_prev,
+        "take_screenshot": jarvis_engine.take_screenshot,
+        "empty_recycle_bin": jarvis_engine.empty_recycle_bin,
+    }
+
+    func = action_map.get(action)
+    if not func:
+        return jsonify({"error": f"Unknown system action: {action}"}), 400
+
+    ok, message = func()
+    return jsonify({"ok": ok, "message": message})
+
+
+@app.route("/jarvis/briefing", methods=["GET"])
+def jarvis_briefing():
+    return jsonify(jarvis_engine.get_morning_briefing())
+
+
+@app.route("/jarvis/timers", methods=["GET"])
+def get_jarvis_timers():
+    return jsonify({
+        "timers": jarvis_engine.get_active_timers(),
+        "alerts": jarvis_engine.pop_fired_alerts(),
+    })
+
+
+@app.route("/jarvis/timer", methods=["POST"])
+def create_jarvis_timer():
+    data = request.get_json(silent=True) or {}
+    seconds = int(data.get("seconds", 60))
+    label = data.get("label", "Task")
+    rec = jarvis_engine.set_timer(seconds, label)
+    return jsonify({"ok": True, "timer": rec})
+
+
 DEFAULT_NEXUS_KEY = "XDy3lmPYUWvUGZtORMfKdDwCVBcqpgua0MtQEtOEOso"
+
 
 
 def run_server(host=None, port=None):

@@ -3,6 +3,7 @@ rich
 flask
 flask-cors
 python-dotenv
+psutil
 
 # Optional: For desktop voice features (Windows / Mac / Linux)
 pyttsx3

@@ -418,11 +418,23 @@ def main():
         if not raw_query:
             continue
 
-        query = raw_query.lower()
+        query = raw_query.lower().strip()
+
+        # Wake-word handling (Jarvis / Hey Jarvis / Nexus)
+        clean_query = raw_query
+        for wake_word in ["hey jarvis", "ok jarvis", "jarvis", "hey nexus", "nexus"]:
+            if query.startswith(wake_word):
+                sub = query[len(wake_word):].strip(" ,.:;!")
+                if not sub:
+                    speak("Yes, sir? Standing by.")
+                    continue
+                clean_query = raw_query[len(wake_word):].strip(" ,.:;!")
+                query = sub
+                break
 
         # Exit commands
-        if query in ["exit", "quit", "stop", "goodbye", "bye", "terminate"]:
-            speak("Goodbye! Have a great day.")
+        if query in ["exit", "quit", "stop", "goodbye", "bye", "terminate", "power down", "sleep"]:
+            speak("Powering down command protocols, sir. Have a great day.")
             break
 
         # Mode toggles
