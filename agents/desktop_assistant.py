@@ -686,3 +686,39 @@ def handle_desktop_command(command, index=None):
         return True, f"Closed all instances and windows matching: '{target}'"
 
     return False, ""
+
+
+def main():
+    """CLI Entry point for Desktop Assistant."""
+    import sys
+    if len(sys.argv) > 1:
+        cmd = " ".join(sys.argv[1:])
+        handled, msg = handle_desktop_command(cmd)
+        print(msg if msg else f"Could not handle command: '{cmd}'")
+        return 0 if handled else 1
+
+    print("==================================================")
+    print("   🎙️ NEXUS Desktop Assistant & J.A.R.V.I.S.     ")
+    print("==================================================")
+    print("Enter desktop commands ('status', 'lock', 'volume up', 'open <app>', 'exit'):\n")
+    try:
+        while True:
+            cmd = input("Desktop Command > ").strip()
+            if not cmd:
+                continue
+            if cmd.lower() in ("exit", "quit", "q"):
+                print("Exiting Desktop Assistant.")
+                break
+            handled, msg = handle_desktop_command(cmd)
+            if handled:
+                print(f"[OK] {msg}")
+            else:
+                print(f"[Unrecognized] Could not resolve command: '{cmd}'")
+    except (KeyboardInterrupt, EOFError):
+        print("\nExiting Desktop Assistant.")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())
