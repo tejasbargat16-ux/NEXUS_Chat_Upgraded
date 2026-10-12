@@ -405,7 +405,7 @@ def local_parse_command(command):
     match = re.match(r'(?:open|launch|start|show) (.+) file$', cmd)
     if match:
         return 'open_file', match.group(1).strip()
-    match = re.match(r'(?:search for|google for|search) (.+)', cmd)
+    match = re.match(r'(?:search for|google for|wikipedia for|wiki for|search|google|wikipedia|wiki)\s+(.+)', cmd)
     if match:
         return 'search', match.group(1).strip()
     match = re.match(r'(?:open|launch|start|show) (.+)$', cmd)
@@ -637,7 +637,7 @@ end tell'''
     return True, f"Closed browser tab matching: {site}"
 
 # ------------------------------------------------------------------ Master Handler
-def handle_desktop_command(command, index=None, allow_llm=False):
+def handle_desktop_command(command, index=None, allow_llm=False, allow_search=True):
     """
     Main entry point for processing voice desktop commands.
     Returns (handled: bool, response_message: str).
@@ -661,6 +661,9 @@ def handle_desktop_command(command, index=None, allow_llm=False):
     if not intent or not target:
         return False, ""
 
+    if intent == 'search' and not allow_search:
+        return False, ""
+
     index = index or build_index()
 
     print(f"[Desktop Assistant] Intent: '{intent}' | Target: '{target}'")
@@ -670,6 +673,8 @@ def handle_desktop_command(command, index=None, allow_llm=False):
     elif intent == 'open_website':
         return open_website_action(target, cmd)
     elif intent == 'search':
+        if not allow_search:
+            return False, ""
         return open_search_action(target)
     elif intent == 'open_file':
         return open_file_action(target, index, cmd)

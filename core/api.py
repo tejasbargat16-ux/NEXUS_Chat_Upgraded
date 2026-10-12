@@ -316,7 +316,7 @@ def chat():
 
     # Fast path 2: Voice Desktop Assistant Commands (Apps, Files, Folders, Chrome Tabs)
     try:
-        d_handled, d_reply = desktop_assistant.handle_desktop_command(message)
+        d_handled, d_reply = desktop_assistant.handle_desktop_command(message, allow_search=False)
         if d_handled:
             db.add_message(conversation_id, "assistant", d_reply)
             return jsonify({
@@ -404,7 +404,7 @@ def chat_stream():
 
     # Fast path 2: Voice Desktop Assistant Commands
     try:
-        d_handled, d_reply = desktop_assistant.handle_desktop_command(message)
+        d_handled, d_reply = desktop_assistant.handle_desktop_command(message, allow_search=False)
         if d_handled:
             db.add_message(conversation_id, "assistant", d_reply)
             def _yield_instant_desktop():
