@@ -312,24 +312,32 @@ def llm_parse_command(command):
 
     prompt = (
         "You are a desktop voice assistant intent parser. Given the user's spoken command, extract the intent as one of:\n"
-        "'open_folder', 'open_website', 'search', 'open_file', 'open_app', 'close_app', 'close_folder', 'close_file', 'close_website'.\n"
+        "'open_folder', 'open_website', 'search', 'open_file', 'open_app', 'close_app', 'close_folder', 'close_file', 'close_website', or 'none'.\n"
         "Rules:\n"
         "- If user says 'folder' at the end, use 'open_folder' or 'close_folder'.\n"
         "- If user says 'file' or document/pdf/txt, use 'open_file' or 'close_file'.\n"
         "- If user says 'app' or executable name, use 'open_app' or 'close_app'.\n"
         "- If user says website or web service (e.g., youtube, gmail, codechef, chatgpt), use 'open_website' or 'close_website'.\n"
-        "- If user says search/google for something, use 'search'.\n"
+        "- If user explicitly says search/google for something, use 'search'.\n"
+        "- If user is having a conversation, asking a question, greeting, coding prompt, or anything not explicitly controlling desktop files/apps, use 'none'.\n"
         "Respond ONLY in valid lowercase JSON: {\"intent\": \"...\", \"target\": \"...\"}.\n"
         f"User command: '{command}'"
     )
     
     try:
         reply = providers.call(provider, key, model, [{"role": "user", "content": prompt}])
-        match = re.search(r'\{\s*"intent"\s*:\s*"([a-z_]+)"\s*,\s*"target"\s*:\s*"([^"]+)"\s*\}', reply, re.IGNORECASE)
+        match = re.search(r'\{\s*"intent"\s*:\s*"([a-z_]+)"\s*,\s*"target"\s*:\s*"([^"]*)"\s*\}', reply, re.IGNORECASE)
         if match:
-            return match.group(1).lower(), match.group(2).lower()
+            intent, target = match.group(1).lower(), match.group(2).lower()
+            if intent in ("none", "chat", "unknown") or not target:
+                return None, None
+            return intent, target
         parsed = json.loads(reply)
-        return parsed.get("intent"), parsed.get("target")
+        intent = (parsed.get("intent") or "").lower()
+        target = (parsed.get("target") or "").lower()
+        if intent in ("none", "chat", "unknown") or not target:
+            return None, None
+        return intent, target
     except Exception as e:
         print(f"[Desktop Assistant LLM Parse Error] {e}")
         return None, None
@@ -397,7 +405,7 @@ def local_parse_command(command):
     match = re.match(r'(?:open|launch|start|show) (.+) file$', cmd)
     if match:
         return 'open_file', match.group(1).strip()
-    match = re.match(r'(?:search for|google for|search) (.+)', cmd)
+    match = re.match(r'(?:search for|google for|wikipedia for|wiki for|search|google|wikipedia|wiki)\s+(.+)', cmd)
     if match:
         return 'search', match.group(1).strip()
     match = re.match(r'(?:open|launch|start|show) (.+)$', cmd)
@@ -407,10 +415,12 @@ def local_parse_command(command):
     return None, None
 
 
-def parse_command(command):
+def parse_command(command, allow_llm=False):
     intent, target = local_parse_command(command)
     if intent is not None:
         return intent, target
+    if not allow_llm:
+        return None, None
     return llm_parse_command(command)
 
 # ------------------------------------------------------------------ Actions Implementation
@@ -631,7 +641,7 @@ end tell'''
     return True, f"Closed browser tab matching: {site}"
 
 # ------------------------------------------------------------------ Master Handler
-def handle_desktop_command(command, index=None):
+def handle_desktop_command(command, index=None, allow_llm=False, allow_search=True):
     """
     Main entry point for processing voice desktop commands.
     Returns (handled: bool, response_message: str).
@@ -640,11 +650,25 @@ def handle_desktop_command(command, index=None):
         return False, ""
 
     cmd = command.strip()
-    index = index or build_index()
 
-    intent, target = parse_command(cmd)
+    # 0. Check J.A.R.V.I.S. Core Engine actions first (sub-millisecond)
+    try:
+        import jarvis_engine
+        j_handled, j_msg, _ = jarvis_engine.handle_jarvis_command(cmd)
+        if j_handled:
+            return True, j_msg
+    except Exception as exc:
+        print(f"[Desktop Assistant Jarvis Hook Error] {exc}")
+
+    # Instant zero-latency regex matching
+    intent, target = parse_command(cmd, allow_llm=allow_llm)
     if not intent or not target:
         return False, ""
+
+    if intent == 'search' and not allow_search:
+        return False, ""
+
+    index = index or build_index()
 
     print(f"[Desktop Assistant] Intent: '{intent}' | Target: '{target}'")
 
@@ -653,6 +677,8 @@ def handle_desktop_command(command, index=None):
     elif intent == 'open_website':
         return open_website_action(target, cmd)
     elif intent == 'search':
+        if not allow_search:
+            return False, ""
         return open_search_action(target)
     elif intent == 'open_file':
         return open_file_action(target, index, cmd)
@@ -680,3 +706,39 @@ def handle_desktop_command(command, index=None):
         return True, f"Closed all instances and windows matching: '{target}'"
 
     return False, ""
+
+
+def main():
+    """CLI Entry point for Desktop Assistant."""
+    import sys
+    if len(sys.argv) > 1:
+        cmd = " ".join(sys.argv[1:])
+        handled, msg = handle_desktop_command(cmd)
+        print(msg if msg else f"Could not handle command: '{cmd}'")
+        return 0 if handled else 1
+
+    print("==================================================")
+    print("   🎙️ NEXUS Desktop Assistant & J.A.R.V.I.S.     ")
+    print("==================================================")
+    print("Enter desktop commands ('status', 'lock', 'volume up', 'open <app>', 'exit'):\n")
+    try:
+        while True:
+            cmd = input("Desktop Command > ").strip()
+            if not cmd:
+                continue
+            if cmd.lower() in ("exit", "quit", "q"):
+                print("Exiting Desktop Assistant.")
+                break
+            handled, msg = handle_desktop_command(cmd)
+            if handled:
+                print(f"[OK] {msg}")
+            else:
+                print(f"[Unrecognized] Could not resolve command: '{cmd}'")
+    except (KeyboardInterrupt, EOFError):
+        print("\nExiting Desktop Assistant.")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main())

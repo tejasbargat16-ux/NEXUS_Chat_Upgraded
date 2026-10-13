@@ -346,7 +346,7 @@ def main():
             continue
 
         # Check for quick local desktop tasks (open youtube, open notepad, time, date, etc.)
-        handled, task_result = nexus_task.execute_desktop_task(user_input)
+        handled, task_result = nexus_task.execute_desktop_task(user_input, allow_search=False)
         if handled:
             console.print(Panel(task_result, title="Desktop Task", border_style="green"))
             if voice_mode:

@@ -317,7 +317,7 @@ def search_wikipedia(search_term, sentences=2):
         return False, f"Could not find matching information on Wikipedia: {e}"
 
 
-def execute_desktop_task(raw_query):
+def execute_desktop_task(raw_query, allow_search=True):
     """
     Evaluate if raw_query is a local desktop or quick command (time, date, app launch, Wikipedia).
     Returns (handled: bool, message: str).
@@ -336,19 +336,24 @@ def execute_desktop_task(raw_query):
         webbrowser.open("https://www.youtube.com")
         return True, "Opening YouTube."
 
-    if "open google" in query:
-        webbrowser.open("https://www.google.com")
-        return True, "Opening Google."
+    if allow_search:
+        if "open google" in query:
+            webbrowser.open("https://www.google.com")
+            return True, "Opening Google."
 
-    if query.startswith("wikipedia ") or " wikipedia" in query or query == "wikipedia":
-        term = query.replace("wikipedia", "").replace("search", "").strip()
-        ok, res = search_wikipedia(term)
-        if ok:
-            return True, f"According to Wikipedia: {res}"
-        return True, res
+        if query.startswith("google ") or query == "google":
+            webbrowser.open("https://www.google.com")
+            return True, "Opening Google."
+
+        if query.startswith("wikipedia ") or " wikipedia" in query or query == "wikipedia":
+            term = query.replace("wikipedia", "").replace("search", "").strip()
+            ok, res = search_wikipedia(term)
+            if ok:
+                return True, f"According to Wikipedia: {res}"
+            return True, res
 
     # Advanced AI Voice Desktop Assistant handling (open/close apps, files, folders, websites, searches)
-    handled, message = desktop_assistant.handle_desktop_command(raw_query)
+    handled, message = desktop_assistant.handle_desktop_command(raw_query, allow_search=allow_search)
     if handled:
         return True, message
 

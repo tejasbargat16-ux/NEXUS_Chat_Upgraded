@@ -1,13 +1,13 @@
-# NEXUS v2 — Desktop AI Assistant
+# NEXUS v2 — J.A.R.V.I.S. Desktop AI Assistant
 
-A cross-platform (Windows primary, macOS/Linux supported) desktop AI assistant featuring a unified multi-provider LLM client with fallback, native function/tool calling agent loop, long-term memory (SQLite FTS5), smart task routing, desktop control tools with a 3-tier safety layer, push-to-talk voice, and a native glassmorphic HUD window.
+A cross-platform (Windows primary, macOS/Linux supported) desktop AI operating partner featuring a unified multi-provider LLM client with fallback, native function/tool calling agent loop, long-term memory (SQLite FTS5), smart task routing, desktop hardware controls with a 3-tier safety layer, push-to-talk voice, real-time telemetry, and an Iron Man Arc Reactor HUD native window.
 
 ---
 
-## ⚡ Features
+## ⚡ Core Capabilities
 
 - **Unified Multi-Provider LLM Client (`core/llm.py`)**: One OpenAI-compatible client supporting Groq, Gemini, OpenRouter, OpenAI, Mistral, and Cohere with exponential backoff and automatic provider fallback.
-- **Native Tool Calling Agent Loop (`core/agent.py`)**: Multi-step agent loop using OpenAI tool/function schemas rather than fragile text parsing.
+- **Native Tool Calling Agent Loop (`core/agent.py`)**: Multi-step autonomous agent loop using OpenAI tool/function schemas rather than fragile text parsing.
 - **`@tool` Decorator & Registry (`core/tools.py`)**: Auto-generates JSON Schema parameters directly from Python type annotations and docstrings.
 - **Long-Term Memory (`core/memory.py`)**: Persistent SQLite FTS5 store for user facts, goals, and preferences with deduplication and relevant memory recall.
 - **Smart Model & Task Router (`core/router.py`)**: Classifies queries into `code`, `study`, `vision`, or `chat` and selects the optimal provider chain from `config.yaml`.
@@ -17,8 +17,9 @@ A cross-platform (Windows primary, macOS/Linux supported) desktop AI assistant f
   - `CONFIRM`: File modifications, closing apps, shell execution (requires explicit user approval).
   - `REFUSED`: Destructive commands (`rm -rf`, `format`, `del /s C:\`, fork bombs) blocked unconditionally.
 - **Push-to-Talk Voice (`desktop/voice.py`)**: Hotkey-triggered recording with STT (Whisper) and offline TTS (pyttsx3).
-- **Native Window & System Tray (`desktop/ui.py`)**: Embedded glassmorphic HUD in a native window (`pywebview`) with persistent system tray controls (`pystray`).
-- **Single Entry Point (`main.py`)**: Everything runs from one clean CLI.
+- **Native Window & System Tray (`desktop/ui.py`)**: Embedded glassmorphic Arc Reactor HUD in a native window (`pywebview`) with persistent system tray controls (`pystray`).
+- **Real-Time Telemetry & J.A.R.V.I.S. Engine**: Live CPU, RAM, Battery, Disk, and system diagnostics (`core/jarvis_engine.py`).
+- **Single Entry Point (`main.py`)**: Unified launcher across all modes.
 
 ---
 
@@ -36,7 +37,7 @@ pip install -r requirements.txt
 pip install -r requirements-desktop.txt
 ```
 
-### 2. Configure Environment
+### 2. Configure Environment (`.env`)
 
 Copy `.env.example` to `.env` and insert your API keys:
 
@@ -83,7 +84,7 @@ python main.py --check
 Run all 38 automated test suites covering security, LLM clients, fallback, tools, memory, router, and desktop safety:
 
 ```bash
-python -m pytest tests/ -v
+python -m pytest -v
 ```
 
 ### 20-Question Evaluation Benchmark
@@ -96,6 +97,25 @@ python evals/run_evals.py
 
 ---
 
+## 🌐 REST API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/health` | `GET` | Service health status and version |
+| `/chat` | `POST` | Agent chat with tool calling, smart routing & memory |
+| `/chat/stream` | `POST` | Server-Sent Events (SSE) streaming chat endpoint |
+| `/confirm/pending`| `GET` | List pending confirmation requests (CONFIRM-tier actions) |
+| `/confirm` | `POST` | Approve or deny a pending action (`{ "confirmation_id": "...", "action": "approve" }`) |
+| `/tools` | `GET` | List all registered tool JSON Schemas |
+| `/memory` | `GET` / `POST` | Inspect and store long-term FTS5 facts |
+| `/system/telemetry` | `GET` | Real-time CPU, RAM, Battery, Disk, and Uptime |
+| `/system/action` | `POST` | Execute OS action (`lock_workstation`, `minimize_all`, `volume_up`, `take_screenshot`) |
+| `/jarvis/briefing` | `GET` | Executive morning / daily status report |
+| `/jarvis/timers` | `GET` | List active timers and pop fired alerts |
+| `/jarvis/timer` | `POST` | Schedule a background timer (`{ "seconds": 300, "label": "Break" }`) |
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -105,9 +125,9 @@ NEXUS_Chat_Upgraded/
 ├── requirements.txt           # Core dependencies
 ├── requirements-desktop.txt   # Native desktop UI & voice dependencies
 ├── .env.example               # Environment variables template
-├── core/                      # Unified client, agent loop, tools, memory, router
+├── core/                      # Unified client, agent loop, tools, memory, router, jarvis
 ├── desktop/                   # Cross-platform OS layer, safety, voice, pywebview UI
-├── frontend/static/           # Glassmorphic HUD interface (HTML5/CSS3/JS)
+├── frontend/static/           # Glassmorphic Arc Reactor HUD interface (HTML5/CSS3/JS)
 ├── launchers/                 # Mode runners (CLI, voice task)
 ├── tests/                     # 38 pytest unit & security tests
 ├── evals/                     # 20-question evaluation benchmark
