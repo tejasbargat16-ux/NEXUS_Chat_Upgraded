@@ -1,41 +1,68 @@
 """
 Persistent user profile for NEXUS Chat.
-Stores simple facts about the user in a plain text file so every
-conversation can be given context about who it's talking to, without
-the user having to repeat themselves each session.
+Compatibility shim over core.memory.
+Stores simple facts about the user so every conversation can be given
+context about who it's talking to without repeating every session.
 """
+
+from __future__ import annotations
 
 import os
 
 PROFILE_PATH = os.path.expanduser("~/.nexuschat/profile.txt")
 
 
-def ensure_dir():
+def ensure_dir() -> None:
     os.makedirs(os.path.dirname(PROFILE_PATH), exist_ok=True)
 
 
-def load_profile():
-    """Return the profile text, or '' if nothing saved yet."""
+def load_profile() -> str:
+    """Return profile facts as newline-separated text."""
+    try:
+        from core.memory import list_facts
+        facts = list_facts(limit=100)
+        if facts:
+            return "\n".join(f["fact"] for f in facts)
+    except Exception:
+        pass
+
     if not os.path.exists(PROFILE_PATH):
         return ""
-    with open(PROFILE_PATH, "r") as f:
+    with open(PROFILE_PATH, "r", encoding="utf-8") as f:
         return f.read().strip()
 
 
-def add_fact(fact):
-    """Append a new fact as its own line."""
+def add_fact(fact: str) -> None:
+    """Append a new fact to memory."""
+    cleaned = fact.strip()
+    if not cleaned:
+        return
+
+    try:
+        from core.memory import remember
+        remember(cleaned, category="profile")
+    except Exception:
+        pass
+
     ensure_dir()
-    with open(PROFILE_PATH, "a") as f:
-        f.write(fact.strip() + "\n")
+    with open(PROFILE_PATH, "a", encoding="utf-8") as f:
+        f.write(cleaned + "\n")
 
 
-def clear_profile():
+def clear_profile() -> None:
+    """Clear saved facts."""
+    try:
+        from core.memory import clear_memory
+        clear_memory()
+    except Exception:
+        pass
+
     ensure_dir()
-    with open(PROFILE_PATH, "w") as f:
+    with open(PROFILE_PATH, "w", encoding="utf-8") as f:
         f.write("")
 
 
-def build_system_prompt(base_prompt):
+def build_system_prompt(base_prompt: str) -> str:
     """Merge the base system prompt with saved profile facts, if any."""
     profile = load_profile()
     if not profile:

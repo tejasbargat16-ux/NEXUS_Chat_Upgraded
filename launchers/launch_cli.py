@@ -59,7 +59,13 @@ import imagegen
 import identity
 import local_llm
 import Nexus_task as nexus_task
-import nexus_desktop
+try:
+    import launch_desktop as nexus_desktop
+except ImportError:
+    try:
+        from launchers import launch_desktop as nexus_desktop
+    except ImportError:
+        nexus_desktop = None
 
 
 console = Console()

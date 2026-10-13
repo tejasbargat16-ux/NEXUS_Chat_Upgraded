@@ -1,92 +1,122 @@
-# NEXUS System Architecture & Project Organization
+# NEXUS v2 — System Architecture & Design Specification
 
-The codebase is organized into clean, dedicated sections separating core AI services, autonomous agents, user interfaces, standalone launchers, and documentation.
-
-## Project Structure Overview
+NEXUS v2 is a cross-platform (Windows primary, macOS/Linux supported) desktop AI assistant with native tool/function calling, long-term FTS5 memory, multi-provider LLM fallback, a 3-tier safety layer, and a native window interface.
 
 ```
-NEXUS_Chat_Upgraded/
-│
-├── 📁 core/                   # AI Backends, Storage & System Services
-│   ├── __init__.py           # Package init & auto-path setup
-│   ├── api.py                # Flask REST API backend server (port 8000)
-│   ├── db.py                 # SQLite conversation & history persistence
-│   ├── providers.py          # Multi-provider routing (Groq, Gemini, OpenRouter, OpenAI)
-│   ├── identity.py           # System prompts, persona & instruction guidelines
-│   ├── profile.py            # Long-term user profile & memory facts
-│   ├── search.py             # Tavily & DuckDuckGo web search engine
-│   ├── imagegen.py           # Pollinations & Gemini image synthesis
-│   ├── voice.py              # Cross-platform TTS & microphone audio engine
-│   └── local_llm.py          # Offline local llama.cpp / GGUF model bridge
-│
-├── 📁 agents/                 # Autonomous Intelligence & Automation
-│   ├── __init__.py           # Package init & auto-path setup
-│   ├── agent.py              # Safe system command execution engine & guardrails
-│   ├── desktop_assistant.py  # Voice desktop automation (apps, files, tabs, indexing)
-│   └── Nexus_task.py         # Autonomous hands-free voice task assistant
-│
-├── 📁 launchers/              # Dedicated Launchers & Entrypoints
-│   ├── __init__.py
-│   ├── launch_desktop.py     # Desktop Studio (starts API + frameless app window)
-│   ├── launch_cli.py         # Terminal interactive chat REPL
-│   └── launch_task.py        # Dedicated hands-free voice task launcher
-│
-├── 📁 frontend/               # User Interfaces & Web Dashboards
-│   ├── static/               # NEXUS Studio Desktop HTML5/CSS/JS frontend
-│   │   └── index.html        # Glassmorphic cybernetic desktop HUD interface
-│   └── ai/                   # NEXUS Command Center React Web App
-│       ├── package.json      # React 19 + TypeScript + Vite + TailwindCSS 4
-│       ├── server.ts         # Express proxy server (port 3000)
-│       └── src/              # React components & UI state
-│
-├── 📁 docs/                   # Documentation & References
-│   ├── ARCHITECTURE.md       # This file: codebase layout & module specifications
-│   ├── API_README.md         # Full REST API endpoints specification
-│   └── MASTER_PROMPT_REFERENCE.md # System prompt engineering & context rules
-│
-├── 📄 Root Entrypoints (Backward-compatible runners):
-│   ├── main.py               # Unified application runner (`python main.py`)
-│   ├── nexus_desktop.py      # Desktop Studio launcher (`python nexus_desktop.py`)
-│   ├── nexuschat.py          # Terminal CLI launcher (`python nexuschat.py`)
-│   ├── api.py                # REST API server launcher (`python api.py`)
-│   ├── desktop_assistant.py  # Voice Assistant launcher
-│   └── Nexus_task.py         # Voice Task launcher
-│
-└── 📄 Configuration & Environment:
-    ├── .env                  # API keys (Groq, Gemini, OpenRouter, etc.)
-    ├── .env.example          # Sample environment configuration template
-    ├── .gitignore            # Git ignore rules
-    └── requirements.txt      # Python dependencies list
++-------------------------------------------------------------------------+
+|                        NEXUS Studio UI (pywebview)                      |
+|                 Glassmorphic HUD Frontend (Vanilla HTML/CSS/JS)         |
++------------------------------------+------------------------------------+
+                                     | REST / SSE / Events
++------------------------------------v------------------------------------+
+|                         desktop/api.py (Flask Gateway)                  |
+|          Binds to 127.0.0.1:5000 | Strict Localhost CORS | Secrets Auth |
++------------------------------------+------------------------------------+
+                                     |
++------------------------------------v------------------------------------+
+|                         core/agent.py (Agent Loop)                      |
+|                  Iterative Tool Execution (max_steps: 6)                |
++-------------------+-----------------+-------------------+---------------+
+                    |                 |                   |
+                    v                 v                   v
+            +---------------+ +---------------+   +---------------+
+            | core/router.py| | core/tools.py |   |core/memory.py |
+            | Task Classifier| | @tool Registry|   | SQLite FTS5   |
+            | Code/Study/...| | JSON Schemas  |   | Dedup/Recall  |
+            +-------+-------+ +-------+-------+   +---------------+
+                    |                 |
+                    v                 v
+            +---------------+ +---------------+
+            |  core/llm.py  | |desktop/safety |
+            | Unified Client| | 3-Tier Guard  |
+            | Fallback Chain| | Safe/Confirm/ |
+            | Groq/Gemini/..| | Refused       |
+            +---------------+ +-------+-------+
+                                      |
+                                      v
+                              +---------------+
+                              |desktop/os_layr|
+                              | Cross-Platform|
+                              | No shell=True |
+                              +---------------+
 ```
 
 ---
 
-## Section Details
+## Directory Layout
 
-### 1. `core/` — Core AI & Services
-- **`providers.py`**: Dispatches requests across Groq, Gemini, OpenRouter, OpenAI, Mistral, and Cohere using lightweight `requests`.
-- **`db.py`**: SQLite database manager stored at `~/.nexuschat/history.db` for conversations and message logs.
-- **`identity.py`**: High-performance system prompt enforcing prompt context and execution instructions.
-- **`profile.py`**: Manages personal profile facts stored persistently across chat sessions.
-- **`search.py`**: Live web searches using Tavily API with DuckDuckGo scrape fallback.
-- **`imagegen.py`**: Image generation via Pollinations.ai or Gemini image models.
-- **`voice.py`**: Text-to-Speech (pyttsx3 / Termux) and Speech-to-Text audio capture.
-- **`local_llm.py`**: Offline fallback using `llama-cli` and local GGUF models.
-- **`api.py`**: Flask REST API serving endpoints for chats, providers, images, and static frontend.
+```
+NEXUS_Chat_Upgraded/
+├── main.py                    # Unified application runner
+├── config.yaml                # Model, route, provider, and fallback configuration
+├── requirements.txt           # Core Python dependencies
+├── requirements-desktop.txt   # Native desktop dependencies (pywebview, pystray, etc.)
+├── .env.example               # Environment variables template
+├── README.md                  # Quickstart, setup, and usage documentation
+│
+├── core/                      # Foundation Layer
+│   ├── config.py              # Configuration loader & validator
+│   ├── llm.py                 # Unified OpenAI-compatible multi-provider client
+│   ├── agent.py               # Tool-calling agent loop
+│   ├── tools.py               # @tool decorator & function schema generator
+│   ├── memory.py              # SQLite FTS5 long-term memory store
+│   ├── router.py              # Smart task classifier & route selector
+│   ├── db.py                  # Conversation persistence
+│   ├── identity.py            # System prompts & core persona
+│   ├── search.py              # Tavily & DuckDuckGo web search
+│   ├── imagegen.py            # Pollinations & Gemini image generation
+│   ├── voice.py               # Audio recording & text-to-speech
+│   └── local_llm.py           # Offline local GGUF/llama.cpp bridge
+│
+├── desktop/                   # Desktop Automation & Safety
+│   ├── os_layer.py            # Cross-platform OS abstraction (Windows/macOS/Linux)
+│   ├── safety.py              # 3-tier safety execution system
+│   ├── tools.py               # Desktop tools registered via @tool
+│   ├── voice.py               # Push-to-talk voice coordinator
+│   ├── ui.py                  # Native window (pywebview) + system tray (pystray)
+│   └── api.py                 # Local Flask gateway (port 5000)
+│
+├── frontend/                  # Web HUD
+│   └── static/                # Cybernetic glassmorphic interface
+│       └── index.html         # Single-page interface
+│
+├── launchers/                 # Mode Launchers
+│   ├── launch_cli.py          # Interactive terminal chat
+│   ├── launch_desktop.py      # Desktop launcher helper
+│   └── launch_task.py         # Hands-free voice assistant
+│
+├── tests/                     # Automated Test Suites (38+ tests)
+│   ├── test_security.py       # Security fix verifications
+│   ├── test_llm.py            # Multi-provider client & fallback tests
+│   ├── test_tools.py          # @tool decorator & execution tests
+│   ├── test_agent.py          # Tool-calling agent loop tests
+│   ├── test_memory.py         # SQLite FTS5 memory tests
+│   ├── test_router.py         # Task classifier tests
+│   └── test_desktop.py        # Safety tiers, OS layer & API tests
+│
+└── evals/                     # Quality Benchmarks
+    ├── questions.json         # 20 standardized domain evaluation questions
+    └── run_evals.py           # Evaluation runner script (100% pass rate)
+```
 
-### 2. `agents/` — Agents & Desktop Automation
-- **`desktop_assistant.py`**: Deep file and folder indexing, smart app opening, web browsing, tab closure, and NLP intent classification.
-- **`Nexus_task.py`**: Continuous voice listening loop with intelligent routing between system actions and AI reasoning.
-- **`agent.py`**: Tool and command execution with safety regex filters and human-in-the-loop approval.
+---
 
-### 3. `frontend/` — Client Interfaces
-- **`frontend/static/`**: Desktop Studio interface served directly by Flask at `http://127.0.0.1:8000`. Features real-time Markdown rendering, session history, voice controls, and inspector pane.
-- **`frontend/ai/`**: Advanced React 19 + TypeScript + Vite + TailwindCSS 4 digital command center with simulation sandbox and telemetry.
+## 3-Tier Safety System
 
-### 4. `launchers/` — Entrypoint Scripts
-- **`launchers/launch_desktop.py`**: Native-like app mode window launcher using MS Edge / Chrome.
-- **`launchers/launch_cli.py`**: Interactive terminal REPL with Rich terminal formatting.
-- **`launchers/launch_task.py`**: Voice task assistant launcher.
+Desktop operations are protected by `desktop/safety.py`:
 
-### 5. `docs/` — Specifications & Guides
-- Documentation, API references, and master prompts are isolated from executable code.
+| Tier | Policy | Operations |
+|------|--------|------------|
+| **SAFE** | Auto-executed | `open_application`, `take_screenshot`, `set_volume`, `web_search`, `read_clipboard`, `open_folder`, `open_website`, `list_windows`, `recall_memory` |
+| **CONFIRM** | Requires user approval | `close_application`, `shell_command`, `lock_screen`, `write_clipboard`, `write_file`, `delete_file` |
+| **REFUSED** | Blocked permanently | Irreversibly destructive commands (`rm -rf /`, `format`, `del /s C:\`, fork bombs, unknown actions) |
+
+---
+
+## Unified Multi-Provider LLM Client
+
+All models and fallback routes are declared in `config.yaml`:
+- **OpenAI-Compatible**: Groq, OpenRouter, Mistral, OpenAI, and Gemini (via Google's OpenAI-compatible endpoint).
+- **Cohere**: Response normalization to standard OpenAI message structure.
+- **Backoff & Retries**: Exponential backoff with automatic fallback across providers.
+- **Native Tool Calling**: Returns tool call requests with argument JSON and passes outputs back to the model.

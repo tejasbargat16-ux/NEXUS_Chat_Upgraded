@@ -118,9 +118,10 @@ def call_gemini(api_key, model, messages):
 
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
+        f"{model}:generateContent"
     )
-    resp = requests.post(url, json=payload, timeout=60)
+    headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
+    resp = requests.post(url, headers=headers, json=payload, timeout=60)
     if resp.status_code != 200:
         raise RuntimeError(f"Gemini API error {resp.status_code}: {resp.text[:300]}")
     data = resp.json()

@@ -439,7 +439,7 @@ def open_app_action(app_name, index=None, original_command=None):
                 if sys_app.startswith('ms-settings'):
                     webbrowser.open(sys_app)
                 else:
-                    subprocess.Popen(sys_app, shell=True)
+                    subprocess.Popen([sys_app])
                 return True, f"Opened system app: {sys_app}"
             elif system == 'Linux':
                 subprocess.Popen([sys_app])
@@ -560,7 +560,7 @@ def close_app_action(app_name):
     elif system == 'Windows':
         try:
             # Try taskkill
-            subprocess.run(f"taskkill /f /im {app_name}.exe", shell=True, capture_output=True)
+            subprocess.run(["taskkill", "/f", "/im", f"{app_name}.exe"], capture_output=True)
             # Try AppOpener close fallback
             try:
                 from AppOpener import close as app_close
@@ -592,8 +592,12 @@ end tell'''
         return True, f"Closed Finder folder window matching: {folder_name}"
     elif system == 'Windows':
         # Close explorer windows with folder name in title
-        cmd = f'powershell "(New-Object -ComObject Shell.Application).Windows() | Where-Object {{ $_.LocationName -like \'*{folder_name}*\' }} | ForEach-Object {{ $_.Quit() }}"'
-        subprocess.run(cmd, shell=True)
+        ps_cmd = (
+            '(New-Object -ComObject Shell.Application).Windows() | '
+            'Where-Object {{ $_.LocationName -like \'*{0}*\' }} | '
+            'ForEach-Object {{ $_.Quit() }}'
+        ).format(folder_name)
+        subprocess.run(["powershell", "-Command", ps_cmd])
         return True, f"Closed Explorer folder window matching: {folder_name}"
     return True, f"Close folder request processed for {folder_name}"
 

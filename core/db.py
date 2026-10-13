@@ -37,6 +37,11 @@ def init_db():
         """
     )
     conn.commit()
+    try:
+        from core.memory import init_memory_table
+        init_memory_table(conn)
+    except Exception:
+        pass
     conn.close()
 
 

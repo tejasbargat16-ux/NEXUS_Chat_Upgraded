@@ -1,0 +1,14 @@
+-r requirements.txt
+
+# Native Desktop Window, Tray & Controls
+pywebview
+pystray
+pynput
+pillow
+
+# Desktop Voice & Audio
+pyttsx3
+sounddevice
+numpy
+speechrecognition
+wikipedia

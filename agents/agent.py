@@ -4,7 +4,9 @@ Lets the AI propose shell commands to accomplish a task. Nothing ever runs
 without the user explicitly approving it — this module never auto-executes.
 """
 
+import platform
 import re
+import shlex
 import subprocess
 
 RUN_PATTERN = re.compile(r"^\s*RUN:\s*(.+)$", re.MULTILINE)
@@ -115,11 +117,19 @@ def is_blocked(command):
 
 
 def run_command(command, cwd=None, timeout=30):
-    """Execute the approved command and return (stdout, stderr, returncode)."""
+    """Execute the approved command and return (stdout, stderr, returncode).
+
+    On Unix: uses shlex.split() to avoid shell=True.
+    On Windows: uses shell=True because commands may use Windows-specific
+    syntax (pipes, builtins) that shlex cannot parse. The BLOCKED_PATTERNS
+    safety net still applies.
+    """
     try:
+        use_shell = platform.system() == "Windows"
+        args = command if use_shell else shlex.split(command)
         result = subprocess.run(
-            command,
-            shell=True,
+            args,
+            shell=use_shell,
             cwd=cwd,
             capture_output=True,
             text=True,

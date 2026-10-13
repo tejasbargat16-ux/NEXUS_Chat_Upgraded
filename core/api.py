@@ -24,6 +24,7 @@ this without NEXUS_API_KEY set, and never expose it without a private tunnel.
 """
 
 import os
+import secrets
 import sys
 
 from flask import Flask, request, jsonify
@@ -78,7 +79,7 @@ if not os.path.exists(STATIC_DIR):
     STATIC_DIR = os.path.join(SCRIPT_DIR, "static")
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="/static")
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": [r"http://127\.0\.0\.1:.*", r"http://localhost:.*"]}})
 
 # In-memory only: which provider/model was last used for a given conversation,
 # so /agent/run and /agent/decline (which don't receive provider/model from
@@ -489,18 +490,31 @@ def close_app():
     return jsonify({"error": msg}), 500
 
 
-DEFAULT_NEXUS_KEY = "XDy3lmPYUWvUGZtORMfKdDwCVBcqpgua0MtQEtOEOso"
+def _generate_and_persist_api_key() -> str:
+    """Generate a random API key, persist it to .env, and return it."""
+    key = secrets.token_urlsafe(32)
+    env_path = os.path.join(ROOT_DIR, ".env")
+    try:
+        with open(env_path, "a") as f:
+            f.write(f"\nNEXUS_API_KEY={key}\n")
+    except OSError as exc:
+        print(f"[NEXUS API] Warning: could not write key to {env_path}: {exc}", file=sys.stderr)
+    return key
 
 
 def run_server(host=None, port=None):
     db.init_db()
     if not os.environ.get("NEXUS_API_KEY"):
-        os.environ["NEXUS_API_KEY"] = DEFAULT_NEXUS_KEY
-        print(f"[NEXUS API] Default NEXUS_API_KEY set: {DEFAULT_NEXUS_KEY[:8]}...")
+        generated = _generate_and_persist_api_key()
+        os.environ["NEXUS_API_KEY"] = generated
+        print(f"[NEXUS API] Generated NEXUS_API_KEY: {generated}")
+        print("[NEXUS API] Key saved to .env. Set NEXUS_API_KEY in your environment to use your own.")
     if host is None:
         host = os.environ.get("HOST", "127.0.0.1")
     if port is None:
         port = int(os.environ.get("PORT", 8000))
+    if host == "0.0.0.0":
+        print("[NEXUS API] WARNING: Binding to 0.0.0.0 exposes the server to the network.", file=sys.stderr)
     print(f"[NEXUS API] Starting server on http://{host}:{port}")
     app.run(host=host, port=port, debug=False, load_dotenv=False)
 

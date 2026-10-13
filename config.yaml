@@ -1,0 +1,96 @@
+# NEXUS v2 Configuration
+# All provider endpoints, models, routes, and fallback chains.
+# No model names hardcoded in Python — everything comes from here.
+
+providers:
+  groq:
+    base_url: "https://api.groq.com/openai/v1"
+    env_key: GROQ_API_KEY
+    auth_style: bearer          # Authorization: Bearer <key>
+    default_model: "openai/gpt-oss-120b"
+    suggested_models:
+      - "openai/gpt-oss-120b"
+      - "openai/gpt-oss-20b"
+      - "qwen/qwen3.8-27b"
+
+  gemini:
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+    env_key: GEMINI_API_KEY
+    auth_style: x-goog-api-key  # x-goog-api-key: <key>
+    default_model: "gemini-3.6-flash"
+    suggested_models:
+      - "gemini-3.6-flash"
+      - "gemini-3.8-flash"
+      - "gemini-3.5-flash"
+      - "gemini-flash-latest"
+
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    env_key: OPENROUTER_API_KEY
+    auth_style: bearer
+    default_model: "meta-llama/llama-3.3-70b-instruct:free"
+    suggested_models:
+      - "meta-llama/llama-3.3-70b-instruct:free"
+      - "google/gemini-2.0-flash-exp:free"
+      - "deepseek/deepseek-r1:free"
+      - "qwen/qwen-2.5-72b-instruct"
+
+  openai:
+    base_url: "https://api.openai.com/v1"
+    env_key: OPENAI_API_KEY
+    auth_style: bearer
+    default_model: "gpt-4o"
+    suggested_models:
+      - "gpt-4o"
+      - "gpt-4o-mini"
+      - "gpt-4-turbo"
+      - "o3-mini"
+
+  mistral:
+    base_url: "https://api.mistral.ai/v1"
+    env_key: MISTRAL_API_KEY
+    auth_style: bearer
+    default_model: "mistral-small-latest"
+    suggested_models:
+      - "mistral-small-latest"
+      - "mistral-large-latest"
+      - "open-mistral-nemo"
+
+  cohere:
+    base_url: "https://api.cohere.com/v2"
+    env_key: COHERE_API_KEY
+    auth_style: bearer
+    default_model: "command-r-08-2024"
+    suggested_models:
+      - "command-r-08-2024"
+      - "command-r-plus-08-2024"
+    # Cohere v2/chat accepts OpenAI-format messages but returns
+    # message.content[].text instead of choices[].message.content.
+    response_style: cohere
+
+# Route names map to fallback chains of provider IDs.
+# The router picks a route based on the user's message, then
+# chat_with_fallback tries each provider in order.
+routes:
+  chat:   [groq, gemini, openrouter, openai, mistral, cohere]
+  code:   [groq, openai, openrouter, gemini]
+  study:  [gemini, groq, openrouter, openai]
+  vision: [gemini, openai]
+
+# Default fallback chain when no route matches.
+default_chain: [groq, gemini, openrouter, openai, mistral, cohere]
+
+# Router settings
+router:
+  use_llm: false  # Use keyword classifier; set true for LLM classifier later
+
+# Voice settings
+voice:
+  wake_word_enabled: false
+  tts_engine: pyttsx3       # pyttsx3 | edge-tts
+  stt_engine: groq-whisper  # groq-whisper | faster-whisper
+
+# Agent settings
+agent:
+  max_steps: 6
+  result_truncation: 4000

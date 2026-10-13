@@ -55,10 +55,11 @@ def generate_image_gemini(prompt, api_key, model="gemini-3.1-flash-image"):
     os.makedirs(IMAGES_DIR, exist_ok=True)
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
+        f"{model}:generateContent"
     )
+    headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
     payload = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
-    resp = requests.post(url, json=payload, timeout=60)
+    resp = requests.post(url, headers=headers, json=payload, timeout=60)
     if resp.status_code != 200:
         raise RuntimeError(f"Gemini image error {resp.status_code}: {resp.text[:300]}")
 
