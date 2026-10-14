@@ -76,9 +76,11 @@ NEXUS_Chat_Upgraded/
 │   ├── ui.py                  # Native window (pywebview) + system tray (pystray)
 │   └── api.py                 # Local Flask gateway (port 5000)
 │
-├── frontend/                  # Web HUD
-│   └── static/                # Cybernetic glassmorphic interface
-│       └── index.html         # Single-page interface
+├── frontend/                  # Web Frontends
+│   ├── static/                # Cybernetic glassmorphic interface
+│   │   └── index.html         # Single-page interface
+│   ├── nexuschat/             # Modern TanStack Start / React 19 / Tailwind / Radix web client
+│   └── ai/                    # Command center React web app
 │
 ├── launchers/                 # Mode Launchers
 │   ├── launch_cli.py          # Interactive terminal chat

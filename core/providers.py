@@ -184,6 +184,7 @@ def call_gemini(api_key, model, messages):
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent"
+    )
     headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
     resp = _SESSION.post(url, headers=headers, json=payload, timeout=60)
     if resp.status_code != 200:
