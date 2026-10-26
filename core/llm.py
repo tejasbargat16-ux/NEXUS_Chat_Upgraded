@@ -273,6 +273,7 @@ def chat_stream(
                 result: dict[str, Any] = {}
                 if delta.get("content"):
                     result["content"] = delta["content"]
+                    result["delta"] = delta["content"]
                 if delta.get("tool_calls"):
                     result["tool_calls"] = delta["tool_calls"]
                 if result:
