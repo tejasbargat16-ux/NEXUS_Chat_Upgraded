@@ -1,15 +1,14 @@
 {
-  "name": "react-example",
+  "name": "nexus-chat-web-client",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "homepage": "https://ai.studio/apps/2f448cd5-0e62-4173-bb8f-d0da48de10cf",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "vite dev",
     "build": "vite build",
-    "start": "tsx server.ts",
+    "start": "bun server.ts",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

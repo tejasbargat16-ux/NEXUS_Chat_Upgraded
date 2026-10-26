@@ -77,8 +77,10 @@ def launch_browser_desktop(host: str, port: int) -> None:
 
     browser_paths = (
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
         os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
         os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
+        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
     )
     for browser in browser_paths:
         if not os.path.exists(browser):
@@ -168,17 +170,20 @@ def main() -> int:
         server_thread.join()
         return 0
 
-    # Attempt native window UI via pywebview
-    try:
-        print(f"[NEXUS] Starting native desktop window UI at {url}...")
-        ui_mod = load_module("desktop.ui")
-        ui_mod.launch_ui(url=url)
-        return 0
-    except Exception as exc:
-        print(f"[NEXUS] pywebview native UI unavailable ({exc}), falling back to browser window...")
-        launch_browser_desktop(args.host, args.port)
-        server_thread.join()
-        return 0
+    # Attempt native window UI via pywebview (only on Python versions where pythonnet is stable)
+    if sys.version_info < (3, 14):
+        try:
+            print(f"[NEXUS] Starting native desktop window UI at {url}...")
+            ui_mod = load_module("desktop.ui")
+            ui_mod.launch_ui(url=url)
+            return 0
+        except Exception as exc:
+            print(f"[NEXUS] pywebview native UI unavailable ({exc}), falling back to desktop window...")
+
+    print(f"[NEXUS] Launching desktop app window at {url}...")
+    launch_browser_desktop(args.host, args.port)
+    server_thread.join()
+    return 0
 
 
 if __name__ == "__main__":
